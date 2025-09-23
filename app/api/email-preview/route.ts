@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   // Generate a secure token for the client portal
   const secureToken = `SECURE_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`
-  const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/client/${secureToken}`
+  const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.vercel.app"}/client/${secureToken}`
 
   const template = generateClientEmailTemplate({
     clientName,

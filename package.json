@@ -14,7 +14,10 @@
     "test:email": "npx tsx scripts/test-email.ts",
     "test:complete": "npx tsx scripts/test-complete.ts",
     "db:setup": "powershell -ExecutionPolicy Bypass -File scripts/show-setup.ps1",
-    "db:seed": "echo 'Execute database/test-data.sql in your Supabase SQL Editor'"
+    "db:seed": "echo 'Execute database/test-data.sql in your Supabase SQL Editor'",
+    "deploy:vercel": "vercel --prod",
+    "deploy:build": "npm run lint && npm run build",
+    "postbuild": "echo 'Build completed successfully! Ready for deployment.'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
