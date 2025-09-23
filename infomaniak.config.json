@@ -1,0 +1,36 @@
+{
+  "name": "eSignPro",
+  "version": "1.0.0",
+  "description": "Application de signature électronique pour résiliations d'assurance",
+  "main": "start.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "infomaniak": {
+    "nodejs": {
+      "version": "18",
+      "buildCommand": "npm ci && npm run build",
+      "startCommand": "node start.js",
+      "port": 3000,
+      "environment": "production"
+    },
+    "static": {
+      "buildCommand": "npm ci && npm run build && npm run export",
+      "outputDirectory": "out",
+      "fallback": "index.html"
+    }
+  },
+  "deployment": {
+    "type": "nodejs",
+    "autoInstall": true,
+    "autoBuild": true,
+    "healthCheck": "/api/health",
+    "timeout": 300
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_APP_URL": "https://esignpro.ch",
+    "PORT": "3000"
+  }
+}
