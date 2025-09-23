@@ -327,7 +327,7 @@ export class EmailService {
     }
 
     // Use email preview link instead of direct client portal link
-    const secureLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://esignpro.vercel.app'}/api/email-preview?clientName=${encodeURIComponent(`${insuranceCase.client.user.first_name} ${insuranceCase.client.user.last_name}`)}&clientId=${insuranceCase.id}`
+    const secureLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://esignpro.ch'}/api/email-preview?clientName=${encodeURIComponent(`${insuranceCase.client.user.first_name} ${insuranceCase.client.user.last_name}`)}&clientId=${insuranceCase.id}`
     const expiryDate = insuranceCase.token_expires_at
       ? new Date(insuranceCase.token_expires_at).toLocaleDateString('fr-CH')
       : 'Non définie'

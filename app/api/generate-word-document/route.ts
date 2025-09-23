@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const fileName = `Resiliation_${clientData.nom}_${clientData.prenom}_${Date.now()}.docx`
 
     // Retourner le document comme réponse
-    return new NextResponse(wordBuffer, {
+    return new NextResponse(wordBuffer as any, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

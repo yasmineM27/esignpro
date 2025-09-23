@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString().split('T')[0]
     const filename = `${data.caseNumber}_${data.clientData.nom}_${data.clientData.prenom}_FINAL_${timestamp}.docx`
 
-    return new NextResponse(documentBuffer, {
+    return new NextResponse(documentBuffer as any, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     const filename = `${mockData.caseNumber}_${mockData.clientData.nom}_${mockData.clientData.prenom}_FINAL_TEST.docx`
 
-    return new NextResponse(documentBuffer, {
+    return new NextResponse(documentBuffer as any, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

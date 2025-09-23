@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const secureToken = `SECURE_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
 
     // Generate the secure client portal link
-    const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.vercel.app"}/client/${secureToken}`
+    const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client/${secureToken}`
 
     // Send email to client using the new email service
     const clientEmailSent = await emailService.sendClientInvitation({
