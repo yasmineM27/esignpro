@@ -91,7 +91,12 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("[v0] Error generating document:", error)
-    return NextResponse.json({ success: false, message: "Erreur lors de la génération du document" }, { status: 500 })
+    return NextResponse.json({
+      success: false,
+      message: "Erreur lors de la génération du document",
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+    }, { status: 500 })
   }
 }
 

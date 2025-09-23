@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
         success: false,
         message: error instanceof Error ? error.message : "Erreur lors de l'envoi de l'email",
         emailSent: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
       },
       { status: 500 },
     )
