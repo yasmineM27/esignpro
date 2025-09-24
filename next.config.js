@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Configuration minimale pour éviter les crashes SIGABRT
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
-  output: process.env.BUILD_MODE === 'export' ? 'export' : undefined,
-  images: { unoptimized: process.env.BUILD_MODE === 'export' ? true : false },
-  basePath: process.env.NODE_ENV === 'production' && process.env.BASE_PATH ? process.env.BASE_PATH : '',
-  assetPrefix: process.env.NODE_ENV === 'production' && process.env.ASSET_PREFIX ? process.env.ASSET_PREFIX : '',
   poweredByHeader: false,
-  trailingSlash: true,
+  swcMinify: false,
+  compiler: {
+    removeConsole: false,
+  },
 
   async headers() {
     return [
