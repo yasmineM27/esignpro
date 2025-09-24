@@ -23,6 +23,7 @@
     "postbuild": "echo 'Build completed successfully! Ready for deployment.'"
   },
   "dependencies": {
+    "@alloc/quick-lru": "^5.2.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -78,6 +79,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
+    "webidl-conversions": "^7.0.0",
     "zod": "3.25.67"
   },
   "devDependencies": {
