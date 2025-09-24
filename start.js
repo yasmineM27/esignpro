@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Script de démarrage personnalisé pour Infomaniak
+ * Script de démarrage optimisé pour Node.js 22 sur Infomaniak
  * Gère l'installation des dépendances et le démarrage de l'application
  */
+
+// Vérification de la version Node.js
+const nodeVersion = process.version;
+console.log(`🔍 Version Node.js détectée: ${nodeVersion}`);
+
+if (!nodeVersion.startsWith('v22')) {
+  console.warn('⚠️ Cette application est optimisée pour Node.js 22');
+}
 
 const { spawn } = require('child_process');
 const fs = require('fs');

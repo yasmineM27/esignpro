@@ -1,12 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuration minimale pour éviter les crashes SIGABRT
+  // Configuration optimisée pour Node.js 22
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
-  swcMinify: false,
+
+  // Optimisations pour Node.js 22
+  swcMinify: true,
   compiler: {
-    removeConsole: false,
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // Configuration expérimentale pour Node.js 22
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+    optimizePackageImports: ['lucide-react'],
   },
 
   async headers() {
