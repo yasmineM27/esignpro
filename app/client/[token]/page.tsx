@@ -141,15 +141,15 @@ export default function ClientWorkflowPage() {
     const newUploadedFiles = files.map(file => ({
       id: file.id,
       name: file.name,
-      type: file.name.toLowerCase().includes('recto') ? 'id_front' : 
-            file.name.toLowerCase().includes('verso') ? 'id_back' : 'additional' as const,
+      type: (file.name.toLowerCase().includes('recto') ? 'id_front' :
+            file.name.toLowerCase().includes('verso') ? 'id_back' : 'additional') as "id_front" | "id_back" | "additional",
       url: file.url
     }))
 
     const updatedData = {
       ...workflowData,
       uploadedFiles: newUploadedFiles,
-      status: newUploadedFiles.length >= 1 ? "documents_uploaded" : workflowData.status as const
+      status: newUploadedFiles.length >= 1 ? "documents_uploaded" : workflowData.status
     }
 
     setWorkflowData(updatedData)
