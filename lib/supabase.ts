@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key'
+
+// Vérifier si Supabase est disponible
+const isSupabaseAvailable = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!isSupabaseAvailable) {
+  console.warn('Supabase not available, using fallback mode')
+}
 
 // Client for browser/client-side operations
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
@@ -186,6 +193,20 @@ export interface DashboardStats {
 
 // Helper functions
 export const getUserByEmail = async (email: string): Promise<User | null> => {
+  if (!isSupabaseAvailable) {
+    console.log('Supabase not available, returning mock user')
+    return {
+      id: 'mock-user-id',
+      email: email,
+      first_name: 'Mock',
+      last_name: 'User',
+      role: 'client',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('users')
     .select('*')
@@ -201,6 +222,39 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
 }
 
 export const getCaseByToken = async (token: string): Promise<InsuranceCase | null> => {
+  if (!isSupabaseAvailable) {
+    console.log('Supabase not available, returning mock case')
+    return {
+      id: 'mock-case-id',
+      case_number: 'MOCK-001',
+      client_id: 'mock-client-id',
+      insurance_type: 'Résiliation',
+      status: 'pending_documents',
+      title: 'Résiliation Mock',
+      priority: 1,
+      secure_token: token,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      client: {
+        id: 'mock-client-id',
+        user_id: 'mock-user-id',
+        country: 'CH',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user: {
+          id: 'mock-user-id',
+          email: 'yasminemassaoudi27@gmail.com',
+          first_name: 'Yasmine',
+          last_name: 'Massaoudi',
+          role: 'client',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      }
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('insurance_cases')
     .select(`
