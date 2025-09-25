@@ -21,6 +21,9 @@ EMAIL_FROM=noreply@esignpro.ch
 EMAIL_FROM_NAME=eSignPro
 EMAIL_REPLY_TO=support@esignpro.ch
 
+# IMPORTANT: Forcer le mode production pour les emails
+FORCE_PRODUCTION_EMAIL=true
+
 # Email de test (pour développement uniquement)
 TEST_CLIENT_EMAIL=yasminemassaoudi27@gmail.com
 ```
@@ -28,11 +31,13 @@ TEST_CLIENT_EMAIL=yasminemassaoudi27@gmail.com
 ## 🎯 Changements Importants
 
 ### ✅ Avant (Problématique)
+
 ```
 EMAIL_FROM=onboarding@resend.dev  ❌ Domaine de test
 ```
 
 ### ✅ Après (Correct)
+
 ```
 EMAIL_FROM=noreply@esignpro.ch    ✅ Votre domaine vérifié
 EMAIL_REPLY_TO=support@esignpro.ch ✅ Votre domaine vérifié
@@ -41,6 +46,7 @@ EMAIL_REPLY_TO=support@esignpro.ch ✅ Votre domaine vérifié
 ## 🔍 Vérifications à Faire
 
 1. **Dans Resend Dashboard** :
+
    - ✅ Domaine `esignpro.ch` vérifié
    - ✅ DNS records configurés
    - ✅ Status "Verified" vert
@@ -53,6 +59,7 @@ EMAIL_REPLY_TO=support@esignpro.ch ✅ Votre domaine vérifié
 ## 🚀 Test Après Déploiement
 
 Une fois déployé, testez avec :
+
 ```bash
 curl -X POST https://esignpro.ch/api/send-email \
   -H "Content-Type: application/json" \

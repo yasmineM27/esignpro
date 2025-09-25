@@ -99,11 +99,13 @@ export class EmailService {
     try {
       // En production, utiliser l'email réel du destinataire
       // En développement, rediriger vers l'email de test
-      const shouldRedirect = process.env.NODE_ENV !== 'production'
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.FORCE_PRODUCTION_EMAIL === 'true'
       const verifiedEmail = process.env.TEST_CLIENT_EMAIL || 'yasminemassaoudi27@gmail.com'
 
+      console.log(`🔍 Email mode: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}, NODE_ENV: ${process.env.NODE_ENV}, FORCE_PRODUCTION_EMAIL: ${process.env.FORCE_PRODUCTION_EMAIL}`)
+
       // Redirection uniquement en développement
-      if (shouldRedirect && emailData.to !== verifiedEmail) {
+      if (!isProduction && emailData.to !== verifiedEmail) {
         console.log(`🔄 [DEV] Redirecting email from ${emailData.to} to verified email ${verifiedEmail}`)
         const originalRecipient = emailData.to
         emailData = {
