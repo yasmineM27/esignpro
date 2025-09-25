@@ -164,15 +164,45 @@ export class DatabaseService {
       // Vérifier si le case_id existe avant de logger
       let validCaseId = data.caseId
       if (data.caseId) {
-        const { data: caseExists } = await supabaseAdmin
+        const { data: caseExists, error: caseCheckError } = await supabaseAdmin
           .from('insurance_cases')
           .select('id')
           .eq('id', data.caseId)
           .single()
 
-        if (!caseExists) {
-          console.warn(`[DB] Case ID ${data.caseId} not found, logging email without case_id`)
-          validCaseId = undefined
+        if (caseCheckError || !caseExists) {
+          console.warn(`[DB] ⚠️ Case ID ${data.caseId} not found, logging email without case_id`)
+          console.warn(`[DB] 🔍 Error details:`, caseCheckError)
+
+          // Optionnel : Créer automatiquement le dossier manquant
+          if (data.caseId && data.caseId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            console.log(`[DB] 🔧 Tentative de création automatique du dossier ${data.caseId}`)
+
+            const { error: createError } = await supabaseAdmin
+              .from('insurance_cases')
+              .insert([{
+                id: data.caseId,
+                case_number: `AUTO-${Date.now()}`,
+                secure_token: data.caseId,
+                status: 'email_sent',
+                title: 'Dossier créé automatiquement',
+                insurance_type: 'auto',
+                insurance_company: 'Création Automatique',
+                policy_number: `AUTO-${data.caseId.substring(0, 8)}`,
+                description: 'Dossier créé automatiquement pour corriger une référence manquante dans email_logs',
+                priority: 1
+              }])
+
+            if (createError) {
+              console.error(`[DB] ❌ Impossible de créer le dossier automatiquement:`, createError)
+              validCaseId = undefined
+            } else {
+              console.log(`[DB] ✅ Dossier ${data.caseId} créé automatiquement`)
+              // Garder le case_id original puisque le dossier existe maintenant
+            }
+          } else {
+            validCaseId = undefined
+          }
         }
       }
 
