@@ -5,8 +5,7 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
 
-  // Optimisations pour Node.js 22
-  swcMinify: true,
+  // Optimisations pour Node.js 22 et Next.js 15
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },

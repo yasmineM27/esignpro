@@ -79,7 +79,7 @@ async function testClientForm(data: any) {
     }
 
     // Simulation de génération de document
-    const clientId = `CLI_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`
+    const clientId = crypto.randomUUID()
     
     return {
       success: true,

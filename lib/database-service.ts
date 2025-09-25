@@ -288,7 +288,7 @@ export class DatabaseService {
     if (!supabaseAdmin) {
       console.log('[DB] Mock client created for user:', userId)
       return {
-        id: `client-${Math.random().toString(36).substring(2, 15)}`,
+        id: crypto.randomUUID(),
         user_id: userId,
         ...clientData,
         created_at: new Date().toISOString()
@@ -331,7 +331,7 @@ export class DatabaseService {
     } catch (error) {
       console.error('[DB] Database error, falling back to mock:', error)
       return {
-        id: `client-${Math.random().toString(36).substring(2, 15)}`,
+        id: crypto.randomUUID(),
         user_id: userId,
         ...clientData,
         created_at: new Date().toISOString()
@@ -381,7 +381,7 @@ export class DatabaseService {
     try {
       const caseNumber = `RES-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
       const secureToken = generateSecureToken()
-      const caseId = `case-${Math.random().toString(36).substring(2, 15)}`
+      const caseId = crypto.randomUUID()
 
       console.log('[DB] Mock case created:', {
         caseId,
