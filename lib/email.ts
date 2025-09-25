@@ -370,11 +370,18 @@ export class EmailService {
 
     const secureLink = `${process.env.NEXT_PUBLIC_APP_URL}/client/${insuranceCase.secure_token}`
 
+    // Calculer la date d'expiration dynamique
+    const expiryDate = insuranceCase.token_expires_at
+      ? new Date(insuranceCase.token_expires_at).toLocaleDateString('fr-CH')
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-CH')
+
     const variables: TemplateVariables = {
       client_name: `${insuranceCase.client.user.first_name} ${insuranceCase.client.user.last_name}`,
       agent_name: insuranceCase.agent?.user ? `${insuranceCase.agent.user.first_name} ${insuranceCase.agent.user.last_name}` : 'Votre conseiller',
       case_number: insuranceCase.case_number,
       secure_link: secureLink,
+      expiry_date: expiryDate,
+      document_type: insuranceCase.insurance_company || 'dossier de résiliation'
     }
 
     return await this.sendTemplateEmail(

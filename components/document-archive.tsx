@@ -139,13 +139,56 @@ export function DocumentArchive() {
     }
   }
 
-  const handleDownloadDocument = (document: ArchivedDocument, type: 'final' | 'original') => {
-    const url = type === 'final' ? document.finalDocumentUrl : document.originalDocumentUrl
-    toast({
-      title: "Téléchargement",
-      description: `Téléchargement du document ${type === 'final' ? 'final' : 'original'} de ${document.clientName}...`,
-    })
-    // Ici, on déclencherait le téléchargement réel
+  const handleDownloadDocument = async (document: ArchivedDocument, type: 'final' | 'original') => {
+    try {
+      if (type === 'final') {
+        // Télécharger le document final avec signature intégrée
+        const response = await fetch(`/api/client/download-document?token=${document.id}&clientId=${document.caseNumber}`)
+
+        if (response.ok) {
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const filename = `${document.caseNumber}_document_signe.pdf`
+
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+
+          toast({
+            title: "Téléchargement réussi",
+            description: `Document signé de ${document.clientName} téléchargé avec succès.`,
+          })
+        } else {
+          throw new Error('Erreur téléchargement')
+        }
+      } else {
+        // Téléchargement document original (simulation)
+        const url = document.originalDocumentUrl
+        const filename = `${document.caseNumber}_original.pdf`
+
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        toast({
+          title: "Téléchargement",
+          description: `Document original de ${document.clientName} téléchargé.`,
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le document.",
+        variant: "destructive",
+      })
+    }
   }
 
   const getStatusBadge = (status: ArchivedDocument['status']) => {
@@ -190,7 +233,7 @@ export function DocumentArchive() {
               onClick={() => handleDownloadDocument(selectedDocument, 'final')}
             >
               <Download className="h-4 w-4 mr-2" />
-              Document Final
+              Document Final Signé
             </Button>
             {selectedDocument.status === 'archived' && (
               <Button

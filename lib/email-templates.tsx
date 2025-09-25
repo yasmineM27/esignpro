@@ -6,8 +6,24 @@ interface EmailTemplateData {
   companyName?: string
 }
 
-export function generateClientEmailTemplate(data: EmailTemplateData): { subject: string; html: string; text: string } {
-  const { clientName, portalLink, documentContent, agentName = "wael hamda", companyName = "eSignPro" } = data
+export function generateClientEmailTemplate(data: EmailTemplateData & {
+  expiryDate?: string
+  documentType?: string
+}): { subject: string; html: string; text: string } {
+  const {
+    clientName,
+    portalLink,
+    documentContent,
+    agentName = "wael hamda",
+    companyName = "eSignPro",
+    expiryDate,
+    documentType = "dossier de résiliation"
+  } = data
+
+  // Calculer la date d'expiration dynamique (7 jours par défaut)
+  const defaultExpiryDate = new Date()
+  defaultExpiryDate.setDate(defaultExpiryDate.getDate() + 7)
+  const finalExpiryDate = expiryDate || defaultExpiryDate.toLocaleDateString('fr-CH')
 
   const subject = "eSignPro - Signature Électronique Sécurisée"
 
@@ -177,7 +193,7 @@ export function generateClientEmailTemplate(data: EmailTemplateData): { subject:
             </div>
 
             <div class="link-info">
-                <strong>Lien personnel et sécurisé - Expire le 25.08.2025</strong>
+                <strong>Lien personnel et sécurisé - Expire le ${finalExpiryDate}</strong>
             </div>
             
             <div class="security">
@@ -198,6 +214,10 @@ export function generateClientEmailTemplate(data: EmailTemplateData): { subject:
             <p style="margin-top: 30px;">Cordialement,</p>
             <p style="font-weight: 600; margin-bottom: 5px;">${agentName}</p>
             <p style="color: #666; font-size: 14px; margin-top: 0;">Votre conseiller - eSignPro</p>
+
+            <p style="color: #999; font-size: 12px; margin-top: 15px;">
+                Envoyé le ${new Date().toLocaleDateString('fr-CH')}
+            </p>
         </div>
 
         <div class="footer">
@@ -221,7 +241,7 @@ Vos documents ont été soigneusement préparés par votre conseiller et sont ma
 
 Accéder à la signature sécurisée: ${portalLink}
 
-Lien personnel et sécurisé - Expire le 25.08.2025
+Lien personnel et sécurisé - Expire le ${finalExpiryDate}
 
 Sécurité garantie
 Votre signature électronique a la même valeur juridique qu'une signature manuscrite selon la législation suisse (SCSE).
@@ -236,7 +256,7 @@ Cordialement,
 ${agentName}
 Votre conseiller - eSignPro
 
-Envoyé le 18.08.2025
+Envoyé le ${new Date().toLocaleDateString('fr-CH')}
   `
 
   return { subject, html, text }

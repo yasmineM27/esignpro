@@ -168,7 +168,7 @@ export default function ClientPortalPage() {
     setCurrentStep(3)
   }
 
-  const handleSignatureComplete = (signatureData: { signature: string; timestamp: string }) => {
+  const handleSignatureComplete = async (signatureData: { signature: string; timestamp: string }) => {
     if (!portalData) return
 
     const updatedData = {
@@ -180,11 +180,50 @@ export default function ClientPortalPage() {
     setPortalData(updatedData)
     setCurrentStep(4)
 
-    // Simuler l'envoi de confirmation après 2 secondes
-    setTimeout(() => {
-      setPortalData(prev => prev ? { ...prev, status: "completed" } : null)
-      setCurrentStep(5)
-    }, 2000)
+    try {
+      // Appeler l'API pour finaliser la signature et sauvegarder en base
+      const response = await fetch('/api/client/complete-signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          clientId,
+          signatureData,
+          clientName: portalData.clientName,
+          clientEmail: portalData.clientEmail,
+          agentName: portalData.agentName,
+          agentEmail: portalData.agentEmail,
+          documentType: portalData.documentType,
+          uploadedFiles: portalData.uploadedFiles
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        console.log('✅ Signature finalisée et sauvegardée:', result)
+
+        // Passer à l'étape de confirmation après 2 secondes
+        setTimeout(() => {
+          setPortalData(prev => prev ? { ...prev, status: "completed" } : null)
+          setCurrentStep(5)
+        }, 2000)
+      } else {
+        console.error('❌ Erreur finalisation signature:', result.error)
+        // Continuer quand même vers la confirmation
+        setTimeout(() => {
+          setPortalData(prev => prev ? { ...prev, status: "completed" } : null)
+          setCurrentStep(5)
+        }, 2000)
+      }
+    } catch (error) {
+      console.error('❌ Erreur API finalisation:', error)
+      // Continuer quand même vers la confirmation
+      setTimeout(() => {
+        setPortalData(prev => prev ? { ...prev, status: "completed" } : null)
+        setCurrentStep(5)
+      }, 2000)
+    }
   }
 
   const getStepStatus = (step: number) => {
@@ -537,6 +576,28 @@ export default function ClientPortalPage() {
                   <strong>Confirmation envoyée</strong> - Un email de confirmation a été envoyé à {portalData.clientEmail}
                 </AlertDescription>
               </Alert>
+
+              {/* Bouton de téléchargement du document signé */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <h4 className="font-medium text-green-800 mb-2">📄 Votre document signé est prêt</h4>
+                <p className="text-sm text-green-700 mb-3">
+                  Téléchargez votre document de résiliation avec signature électronique intégrée.
+                </p>
+                <Button
+                  onClick={() => {
+                    const link = document.createElement('a')
+                    link.href = `/api/client/download-document?token=${token}&clientId=${clientId}`
+                    link.download = `document-signe-${clientId}.pdf`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Télécharger le Document Signé
+                </Button>
+              </div>
 
               {/* Signature du conseiller */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-left">
