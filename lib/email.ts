@@ -339,8 +339,8 @@ export class EmailService {
       return { success: false, error: 'Missing client data or secure token' }
     }
 
-    // Use the new hierarchical client portal link
-    const secureLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://esignpro.ch'}/client/${insuranceCase.secure_token}`
+    // Use the unified client portal link
+    const secureLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://esignpro.ch'}/client-portal/${insuranceCase.secure_token}`
     const expiryDate = insuranceCase.token_expires_at
       ? new Date(insuranceCase.token_expires_at).toLocaleDateString('fr-CH')
       : 'Non définie'
