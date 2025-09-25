@@ -30,7 +30,7 @@ async function testBasicEmail() {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'eSignPro <onboarding@resend.dev>',
+      from: 'eSignPro <noreply@esignpro.ch>',
       to: [process.env.TEST_CLIENT_EMAIL],
       subject: '🧪 Test eSignPro - Configuration Email',
       html: `
@@ -120,7 +120,7 @@ async function testEmailToAgent() {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'eSignPro <onboarding@resend.dev>',
+      from: 'eSignPro <noreply@esignpro.ch>',
       to: [process.env.TEST_AGENT_EMAIL],
       subject: '🔔 Notification Agent - Nouveau dossier assigné',
       html: `

@@ -82,10 +82,10 @@ export class EmailService {
   private replyToEmail: string
 
   private constructor() {
-    // Use verified Resend domain for testing since esignpro.ch is not verified
-    this.fromEmail = 'onboarding@resend.dev'
+    // Use verified esignpro.ch domain
+    this.fromEmail = process.env.EMAIL_FROM || 'noreply@esignpro.ch'
     this.fromName = process.env.EMAIL_FROM_NAME || 'eSignPro'
-    this.replyToEmail = 'onboarding@resend.dev'
+    this.replyToEmail = process.env.EMAIL_REPLY_TO || 'support@esignpro.ch'
   }
 
   public static getInstance(): EmailService {
@@ -97,26 +97,29 @@ export class EmailService {
 
   async sendEmail(emailData: EmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      // TOUJOURS rediriger vers l'email vérifié pour éviter les erreurs Resend
+      // En production, utiliser l'email réel du destinataire
+      // En développement, rediriger vers l'email de test
+      const shouldRedirect = process.env.NODE_ENV !== 'production'
       const verifiedEmail = process.env.TEST_CLIENT_EMAIL || 'yasminemassaoudi27@gmail.com'
 
-      if (emailData.to !== verifiedEmail) {
-        console.log(`🔄 Redirecting email from ${emailData.to} to verified email ${verifiedEmail}`)
+      // Redirection uniquement en développement
+      if (shouldRedirect && emailData.to !== verifiedEmail) {
+        console.log(`🔄 [DEV] Redirecting email from ${emailData.to} to verified email ${verifiedEmail}`)
         const originalRecipient = emailData.to
         emailData = {
           ...emailData,
           to: verifiedEmail,
-          subject: `[REDIRECT] ${emailData.subject}`,
+          subject: `[DEV-REDIRECT] ${emailData.subject}`,
           html: emailData.html?.replace(
             '<body>',
             `<body>
-            <div style="background: #dbeafe; border: 1px solid #3b82f6; padding: 10px; margin-bottom: 20px; border-radius: 6px;">
-              <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                <strong>📧 Email Redirigé:</strong> Cet email était destiné à ${originalRecipient} mais a été redirigé vers ${verifiedEmail} (compte Resend non vérifié)
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 10px; margin-bottom: 20px; border-radius: 6px;">
+              <p style="margin: 0; color: #92400e; font-size: 14px;">
+                <strong>📧 Email Redirigé (MODE DEV):</strong> Cet email était destiné à ${originalRecipient} mais a été redirigé vers ${verifiedEmail}
               </p>
             </div>`
           ),
-          text: `📧 EMAIL REDIRIGÉ: Destinataire original: ${originalRecipient} → Redirigé vers: ${verifiedEmail}\n\n${emailData.text}`
+          text: `📧 EMAIL REDIRIGÉ (MODE DEV): Destinataire original: ${originalRecipient} → Redirigé vers: ${verifiedEmail}\n\n${emailData.text}`
         }
       }
 

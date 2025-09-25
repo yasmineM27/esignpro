@@ -9,9 +9,9 @@ interface SendEmailOptions {
 
 // Email service configuration
 const EMAIL_CONFIG = {
-  // For production, you would use environment variables
-  from: process.env.EMAIL_FROM || "noreply@gmail.com",
-  replyTo: process.env.EMAIL_REPLY_TO || "support@gmail.com",
+  // Use verified esignpro.ch domain
+  from: process.env.EMAIL_FROM || "noreply@esignpro.ch",
+  replyTo: process.env.EMAIL_REPLY_TO || "support@esignpro.ch",
   // Add your email service API key here
   apiKey: process.env.RESEND_API_KEY,
 }
