@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Documents Séparés</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .upload-section.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .document-type {
+            background: #e9ecef;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Upload Documents Séparés</h1>
+        <p>Test de l'API d'upload pour le client: <strong>a71df0e4-e48a-4fec-bdd3-a2780daf7bcd</strong></p>
+
+        <!-- CIN Recto -->
+        <div class="document-type">
+            <h3>🆔 Carte d'Identité - RECTO</h3>
+            <div class="upload-section" id="identity_front">
+                <p>Glissez votre CIN recto ici ou cliquez pour sélectionner</p>
+                <input type="file" id="file_identity_front" accept="image/jpeg,image/png,image/jpg">
+                <button onclick="uploadDocument('identity_front')">Upload CIN Recto</button>
+                <div class="progress" id="progress_identity_front" style="display:none;">
+                    <div class="progress-bar" id="bar_identity_front"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CIN Verso -->
+        <div class="document-type">
+            <h3>🆔 Carte d'Identité - VERSO</h3>
+            <div class="upload-section" id="identity_back">
+                <p>Glissez votre CIN verso ici ou cliquez pour sélectionner</p>
+                <input type="file" id="file_identity_back" accept="image/jpeg,image/png,image/jpg">
+                <button onclick="uploadDocument('identity_back')">Upload CIN Verso</button>
+                <div class="progress" id="progress_identity_back" style="display:none;">
+                    <div class="progress-bar" id="bar_identity_back"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contrat Assurance -->
+        <div class="document-type">
+            <h3>📄 Contrat d'Assurance</h3>
+            <div class="upload-section" id="insurance_contract">
+                <p>Glissez votre contrat d'assurance ici ou cliquez pour sélectionner</p>
+                <input type="file" id="file_insurance_contract" accept="application/pdf,image/jpeg,image/png" multiple>
+                <button onclick="uploadDocument('insurance_contract')">Upload Contrat</button>
+                <div class="progress" id="progress_insurance_contract" style="display:none;">
+                    <div class="progress-bar" id="bar_insurance_contract"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Optionnels -->
+        <div class="document-type">
+            <h3>🏠 Justificatif de Domicile (Optionnel)</h3>
+            <div class="upload-section" id="proof_address">
+                <p>Glissez votre justificatif de domicile ici ou cliquez pour sélectionner</p>
+                <input type="file" id="file_proof_address" accept="application/pdf,image/jpeg,image/png">
+                <button onclick="uploadDocument('proof_address')">Upload Justificatif</button>
+                <div class="progress" id="progress_proof_address" style="display:none;">
+                    <div class="progress-bar" id="bar_proof_address"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Résultats -->
+        <div id="results"></div>
+
+        <!-- Actions -->
+        <div style="margin-top: 30px;">
+            <button onclick="testAllDocuments()">🧪 Test Complet</button>
+            <button onclick="clearResults()">🗑️ Effacer Résultats</button>
+            <button onclick="getDocuments()">📋 Voir Documents</button>
+        </div>
+    </div>
+
+    <script>
+        const CLIENT_ID = 'a71df0e4-e48a-4fec-bdd3-a2780daf7bcd';
+        const TOKEN = 'a71df0e4-e48a-4fec-bdd3-a2780daf7bcd';
+        const API_BASE = 'http://localhost:3000';
+
+        // Drag & Drop
+        document.querySelectorAll('.upload-section').forEach(section => {
+            section.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                section.classList.add('dragover');
+            });
+
+            section.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                section.classList.remove('dragover');
+            });
+
+            section.addEventListener('drop', (e) => {
+                e.preventDefault();
+                section.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                const documentType = section.id;
+                const fileInput = document.getElementById(`file_${documentType}`);
+                fileInput.files = e.dataTransfer.files;
+            });
+        });
+
+        async function uploadDocument(documentType) {
+            const fileInput = document.getElementById(`file_${documentType}`);
+            const files = fileInput.files;
+
+            if (!files.length) {
+                addResult(`❌ Aucun fichier sélectionné pour ${documentType}`, 'error');
+                return;
+            }
+
+            const progressDiv = document.getElementById(`progress_${documentType}`);
+            const progressBar = document.getElementById(`bar_${documentType}`);
+            
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '0%';
+
+            try {
+                const formData = new FormData();
+                Array.from(files).forEach(file => {
+                    formData.append('files', file);
+                });
+                formData.append('token', TOKEN);
+                formData.append('clientId', CLIENT_ID);
+                formData.append('documentType', documentType);
+
+                // Simuler le progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 10;
+                    progressBar.style.width = `${Math.min(progress, 90)}%`;
+                }, 100);
+
+                const response = await fetch(`${API_BASE}/api/client/upload-separated-documents`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+
+                const result = await response.json();
+
+                if (result.success) {
+                    addResult(`✅ ${documentType}: ${result.message}\nFichiers: ${result.uploadedFiles.map(f => f.name).join(', ')}`, 'success');
+                } else {
+                    addResult(`❌ ${documentType}: ${result.error}`, 'error');
+                }
+
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                }, 2000);
+
+            } catch (error) {
+                addResult(`❌ ${documentType}: Erreur réseau - ${error.message}`, 'error');
+                progressDiv.style.display = 'none';
+            }
+        }
+
+        async function getDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/api/client/upload-separated-documents?clientId=${CLIENT_ID}&token=${TOKEN}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    addResult(`📋 Documents récupérés:\nTotal: ${result.totalCount}\nPar type: ${JSON.stringify(result.documentsByType, null, 2)}`, 'success');
+                } else {
+                    addResult(`❌ Erreur récupération: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Erreur réseau: ${error.message}`, 'error');
+            }
+        }
+
+        function addResult(message, type) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testAllDocuments() {
+            addResult('🧪 Début du test complet...', 'success');
+            
+            // Test avec des fichiers factices
+            const testFiles = {
+                identity_front: createTestFile('cin_recto.jpg', 'image/jpeg'),
+                identity_back: createTestFile('cin_verso.jpg', 'image/jpeg'),
+                insurance_contract: createTestFile('contrat_assurance.pdf', 'application/pdf'),
+                proof_address: createTestFile('facture_electricite.pdf', 'application/pdf')
+            };
+
+            for (const [docType, file] of Object.entries(testFiles)) {
+                const fileInput = document.getElementById(`file_${docType}`);
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                
+                await uploadDocument(docType);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1s entre chaque upload
+            }
+
+            addResult('🎉 Test complet terminé!', 'success');
+        }
+
+        function createTestFile(name, type) {
+            const content = `Test file content for ${name} - ${new Date().toISOString()}`;
+            return new File([content], name, { type });
+        }
+
+        // Message de bienvenue
+        addResult('🚀 Page de test chargée. Prêt pour les tests d\'upload!', 'success');
+    </script>
+</body>
+</html>

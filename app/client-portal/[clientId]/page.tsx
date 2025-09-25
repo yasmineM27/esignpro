@@ -401,18 +401,27 @@ export default function ClientPortalPage({ params }: ClientPortalPageProps) {
                     type="identity_front"
                     onFilesUploaded={(files) => handleDocumentsByType('identity_front', files)}
                     uploadedFiles={documentsByType.identity_front}
+                    clientId={token}
+                    token={token}
+                    useRealAPI={true}
                   />
 
                   <SeparatedDocumentUploader
                     type="identity_back"
                     onFilesUploaded={(files) => handleDocumentsByType('identity_back', files)}
                     uploadedFiles={documentsByType.identity_back}
+                    clientId={token}
+                    token={token}
+                    useRealAPI={true}
                   />
 
                   <SeparatedDocumentUploader
                     type="insurance_contract"
                     onFilesUploaded={(files) => handleDocumentsByType('insurance_contract', files)}
                     uploadedFiles={documentsByType.insurance_contract}
+                    clientId={token}
+                    token={token}
+                    useRealAPI={true}
                   />
                 </div>
 
@@ -426,18 +435,27 @@ export default function ClientPortalPage({ params }: ClientPortalPageProps) {
                     type="proof_address"
                     onFilesUploaded={(files) => handleDocumentsByType('proof_address', files)}
                     uploadedFiles={documentsByType.proof_address}
+                    clientId={token}
+                    token={token}
+                    useRealAPI={true}
                   />
 
                   <SeparatedDocumentUploader
                     type="bank_statement"
                     onFilesUploaded={(files) => handleDocumentsByType('bank_statement', files)}
                     uploadedFiles={documentsByType.bank_statement}
+                    clientId={token}
+                    token={token}
+                    useRealAPI={true}
                   />
 
                   <SeparatedDocumentUploader
                     type="additional"
                     onFilesUploaded={(files) => handleDocumentsByType('additional', files)}
                     uploadedFiles={documentsByType.additional}
+                    clientId={token}
+                    token={token}
+                    useRealAPI={true}
                   />
                 </div>
 

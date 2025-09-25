@@ -85,12 +85,18 @@ interface SeparatedDocumentUploaderProps {
   type: keyof typeof DOCUMENT_CONFIGS
   onFilesUploaded: (files: UploadedFile[]) => void
   uploadedFiles?: UploadedFile[]
+  clientId?: string
+  token?: string
+  useRealAPI?: boolean
 }
 
 export function SeparatedDocumentUploader({
   type,
   onFilesUploaded,
-  uploadedFiles = []
+  uploadedFiles = [],
+  clientId,
+  token,
+  useRealAPI = false
 }: SeparatedDocumentUploaderProps) {
   const { toast } = useToast()
   const [files, setFiles] = useState<UploadedFile[]>(uploadedFiles)
@@ -144,85 +150,213 @@ export function SeparatedDocumentUploader({
   const colorClasses = getColorClasses(config.color)
 
   const handleFiles = async (newFiles: File[]) => {
-    if (files.length + newFiles.length > config.maxFiles) {
+    try {
+      // Validation: Nombre de fichiers
+      if (files.length + newFiles.length > config.maxFiles) {
+        toast({
+          title: "Limite dépassée",
+          description: `Vous ne pouvez uploader que ${config.maxFiles} fichier(s) maximum pour ${config.title}.`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validation: Types de fichiers
+      const invalidFiles = newFiles.filter((file) => {
+        const isValidType = config.acceptedTypes.some(acceptedType => {
+          // Support pour les types MIME et extensions
+          return file.type === acceptedType ||
+                 file.name.toLowerCase().endsWith(acceptedType.replace('image/', '.').replace('application/', '.'))
+        })
+        return !isValidType
+      })
+
+      if (invalidFiles.length > 0) {
+        toast({
+          title: "Type de fichier non supporté",
+          description: `Types acceptés pour ${config.title}: ${config.acceptedTypes.map(t => {
+            if (t.includes('/')) return t.split('/')[1].toUpperCase()
+            return t.toUpperCase()
+          }).join(", ")}`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validation: Taille des fichiers
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      const oversizedFiles = newFiles.filter((file) => file.size > maxSize)
+
+      if (oversizedFiles.length > 0) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: "La taille maximum par fichier est de 10MB.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validation: Fichiers vides
+      const emptyFiles = newFiles.filter((file) => file.size === 0)
+      if (emptyFiles.length > 0) {
+        toast({
+          title: "Fichier vide",
+          description: "Impossible d'uploader des fichiers vides.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Créer les entrées d'upload
+      const uploadFiles: UploadedFile[] = newFiles.map((file) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: "",
+        status: "uploading",
+        progress: 0,
+        documentType: type
+      }))
+
+      setFiles((prev) => [...prev, ...uploadFiles])
+
+      // Uploader chaque fichier
+      for (const uploadFile of uploadFiles) {
+        const originalFile = newFiles.find((f) => f.name === uploadFile.name)
+        if (originalFile) {
+          if (useRealAPI && clientId && token) {
+            await realUpload(uploadFile, originalFile)
+          } else {
+            await simulateUpload(uploadFile, originalFile)
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Erreur lors de la gestion des fichiers:', error)
       toast({
-        title: "Limite dépassée",
-        description: `Vous ne pouvez uploader que ${config.maxFiles} fichier(s) maximum pour ${config.title}.`,
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la sélection des fichiers.",
         variant: "destructive",
       })
-      return
     }
+  }
 
-    const invalidFiles = newFiles.filter((file) => {
-      return !config.acceptedTypes.includes(file.type)
-    })
+  const realUpload = async (uploadFile: UploadedFile, file: File) => {
+    try {
+      // Créer FormData pour l'upload
+      const formData = new FormData()
+      formData.append('files', file)
+      formData.append('token', token!)
+      formData.append('clientId', clientId!)
+      formData.append('documentType', type)
 
-    if (invalidFiles.length > 0) {
+      // Simuler le progress pendant l'upload
+      const progressInterval = setInterval(() => {
+        setFiles((prev) => prev.map((f) => {
+          if (f.id === uploadFile.id && f.progress < 90) {
+            return { ...f, progress: f.progress + 10 }
+          }
+          return f
+        }))
+      }, 200)
+
+      // Faire l'upload réel
+      const response = await fetch('/api/client/upload-separated-documents', {
+        method: 'POST',
+        body: formData
+      })
+
+      clearInterval(progressInterval)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de l\'upload')
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Upload échoué')
+      }
+
+      // Marquer comme terminé avec les données du serveur
+      const uploadedFileData = result.uploadedFiles[0] // Premier fichier uploadé
+      setFiles((prev) =>
+        prev.map((f) => (f.id === uploadFile.id ? {
+          ...f,
+          status: "completed",
+          progress: 100,
+          url: uploadedFileData.url
+        } : f)),
+      )
+
+      // Mettre à jour la liste des fichiers uploadés
+      setTimeout(() => {
+        setFiles((currentFiles) => {
+          const completedFiles = currentFiles.filter((f) => f.status === "completed")
+          onFilesUploaded(completedFiles)
+          return currentFiles
+        })
+      }, 100)
+
       toast({
-        title: "Type de fichier non supporté",
-        description: `Types acceptés pour ${config.title}: ${config.acceptedTypes.map(t => t.split('/')[1].toUpperCase()).join(", ")}`,
+        title: "Fichier uploadé",
+        description: `${uploadFile.name} a été uploadé avec succès pour ${config.title}.`,
+      })
+
+    } catch (error) {
+      console.error('Erreur lors de l\'upload réel:', error)
+
+      setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, status: "error", progress: 0 } : f)))
+
+      toast({
+        title: "Erreur d'upload",
+        description: error instanceof Error ? error.message : `Impossible d'uploader ${uploadFile.name}. Veuillez réessayer.`,
         variant: "destructive",
       })
-      return
-    }
-
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    const oversizedFiles = newFiles.filter((file) => file.size > maxSize)
-
-    if (oversizedFiles.length > 0) {
-      toast({
-        title: "Fichier trop volumineux",
-        description: "La taille maximum par fichier est de 10MB.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const uploadFiles: UploadedFile[] = newFiles.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      url: "",
-      status: "uploading",
-      progress: 0,
-      documentType: type
-    }))
-
-    setFiles((prev) => [...prev, ...uploadFiles])
-
-    for (const uploadFile of uploadFiles) {
-      await simulateUpload(uploadFile, newFiles.find((f) => f.name === uploadFile.name)!)
     }
   }
 
   const simulateUpload = async (uploadFile: UploadedFile, file: File) => {
     try {
+      // Simulation de l'upload avec progress bar
       for (let progress = 0; progress <= 100; progress += 10) {
         await new Promise((resolve) => setTimeout(resolve, 100))
         setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, progress } : f)))
       }
 
+      // Créer l'URL du fichier
       const url = URL.createObjectURL(file)
 
+      // Marquer le fichier comme terminé
       setFiles((prev) =>
         prev.map((f) => (f.id === uploadFile.id ? { ...f, status: "completed", progress: 100, url } : f)),
       )
 
-      const updatedFiles = files.filter((f) => f.status === "completed").map((f) => f)
-      updatedFiles.push({ ...uploadFile, status: "completed", progress: 100, url })
-      onFilesUploaded(updatedFiles)
+      // Mettre à jour la liste des fichiers uploadés
+      setTimeout(() => {
+        setFiles((currentFiles) => {
+          const completedFiles = currentFiles.filter((f) => f.status === "completed")
+          onFilesUploaded(completedFiles)
+          return currentFiles
+        })
+      }, 100)
 
       toast({
         title: "Fichier uploadé",
-        description: `${uploadFile.name} a été uploadé avec succès.`,
+        description: `${uploadFile.name} a été uploadé avec succès pour ${config.title}.`,
       })
+
     } catch (error) {
+      console.error('Erreur lors de l\'upload:', error)
+
       setFiles((prev) => prev.map((f) => (f.id === uploadFile.id ? { ...f, status: "error", progress: 0 } : f)))
 
       toast({
         title: "Erreur d'upload",
-        description: `Impossible d'uploader ${uploadFile.name}.`,
+        description: `Impossible d'uploader ${uploadFile.name}. Veuillez réessayer.`,
         variant: "destructive",
       })
     }
@@ -251,25 +385,51 @@ export function SeparatedDocumentUploader({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     setIsDragOver(true)
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     setIsDragOver(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     setIsDragOver(false)
-    const droppedFiles = Array.from(e.dataTransfer.files)
-    handleFiles(droppedFiles)
+
+    try {
+      const droppedFiles = Array.from(e.dataTransfer.files)
+      if (droppedFiles.length > 0) {
+        handleFiles(droppedFiles)
+      }
+    } catch (error) {
+      console.error('Erreur lors du drop:', error)
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du glisser-déposer. Utilisez le bouton de sélection.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files)
-      handleFiles(selectedFiles)
+    try {
+      if (e.target.files && e.target.files.length > 0) {
+        const selectedFiles = Array.from(e.target.files)
+        handleFiles(selectedFiles)
+      }
+      // Reset input value pour permettre de sélectionner le même fichier
+      e.target.value = ''
+    } catch (error) {
+      console.error('Erreur lors de la sélection:', error)
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la sélection des fichiers. Veuillez réessayer.",
+        variant: "destructive",
+      })
     }
   }
 
