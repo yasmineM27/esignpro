@@ -5,9 +5,9 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
 
-  // Configuration expérimentale pour Node.js 22
+  // Configuration pour Next.js 15
+  serverExternalPackages: ['@supabase/supabase-js'],
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     // Ajout pour résoudre le problème SIGABRT
     workerThreads: false,  // Désactive les worker threads
