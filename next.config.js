@@ -1,19 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuration optimisée pour Node.js 22
+  // Configuration optimisée pour Node.js 22 et Next.js 15
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
 
-  // Optimisations pour Node.js 22 et Next.js 15
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
-
   // Configuration expérimentale pour Node.js 22
   experimental: {
     serverComponentsExternalPackages: ['@supabase/supabase-js'],
-    optimizePackageImports: ['lucide-react'],
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Ajout pour résoudre le problème SIGABRT
+    workerThreads: false,  // Désactive les worker threads
+  },
+
+  // Compiler optimisé
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 
   async headers() {
@@ -45,16 +47,7 @@ const nextConfig = {
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
   },
 
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
 
-    // Ajout pour résoudre le problème SIGABRT
-    workerThreads: false,  // Désactive les worker threads
-  },
-
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
-  },
 }
 
 module.exports = nextConfig

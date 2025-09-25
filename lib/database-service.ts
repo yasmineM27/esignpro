@@ -10,7 +10,7 @@ try {
   createAuditLog = supabaseModule.createAuditLog
 } catch (error) {
   console.warn('[DB] Supabase not configured, using mock mode')
-  generateSecureToken = () => 'secure-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  generateSecureToken = () => crypto.randomUUID().replace(/-/g, '')
   createAuditLog = async () => console.log('[DB] Audit log (mock mode)')
 }
 
@@ -236,7 +236,7 @@ export class DatabaseService {
     if (!supabaseAdmin) {
       console.log('[DB] Mock user created:', userData.email)
       return {
-        id: `user-${Math.random().toString(36).substring(2, 15)}`,
+        id: crypto.randomUUID(),
         email: userData.email,
         first_name: userData.first_name,
         last_name: userData.last_name,

@@ -304,5 +304,5 @@ export const createAuditLog = async (logData: Partial<AuditLog>) => {
 }
 
 export const generateSecureToken = (): string => {
-  return 'secure-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  return crypto.randomUUID().replace(/-/g, '')
 }

@@ -97,31 +97,39 @@ export class EmailService {
 
   async sendEmail(emailData: EmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      // En production, utiliser l'email réel du destinataire
-      // En développement, rediriger vers l'email de test
+      // Vérifier le mode de fonctionnement
       const isProduction = process.env.NODE_ENV === 'production' || process.env.FORCE_PRODUCTION_EMAIL === 'true'
       const verifiedEmail = process.env.TEST_CLIENT_EMAIL || 'yasminemassaoudi27@gmail.com'
 
-      console.log(`🔍 Email mode: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}, NODE_ENV: ${process.env.NODE_ENV}, FORCE_PRODUCTION_EMAIL: ${process.env.FORCE_PRODUCTION_EMAIL}`)
+      console.log(`🔍 Email mode: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`)
+      console.log(`📧 Destinataire original: ${emailData.to}`)
+      console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV}`)
+      console.log(`🔧 FORCE_PRODUCTION_EMAIL: ${process.env.FORCE_PRODUCTION_EMAIL}`)
 
-      // Redirection uniquement en développement
-      if (!isProduction && emailData.to !== verifiedEmail) {
-        console.log(`🔄 [DEV] Redirecting email from ${emailData.to} to verified email ${verifiedEmail}`)
-        const originalRecipient = emailData.to
-        emailData = {
-          ...emailData,
-          to: verifiedEmail,
-          subject: `[DEV-REDIRECT] ${emailData.subject}`,
-          html: emailData.html?.replace(
-            '<body>',
-            `<body>
-            <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 10px; margin-bottom: 20px; border-radius: 6px;">
-              <p style="margin: 0; color: #92400e; font-size: 14px;">
-                <strong>📧 Email Redirigé (MODE DEV):</strong> Cet email était destiné à ${originalRecipient} mais a été redirigé vers ${verifiedEmail}
-              </p>
-            </div>`
-          ),
-          text: `📧 EMAIL REDIRIGÉ (MODE DEV): Destinataire original: ${originalRecipient} → Redirigé vers: ${verifiedEmail}\n\n${emailData.text}`
+      // EN PRODUCTION: Envoyer directement au client réel
+      if (isProduction) {
+        console.log(`✅ MODE PRODUCTION: Envoi direct vers ${emailData.to}`)
+        // Pas de redirection, utiliser l'email original
+      } else {
+        // EN DÉVELOPPEMENT: Rediriger vers l'email de test
+        if (emailData.to !== verifiedEmail) {
+          console.log(`🔄 MODE DÉVELOPPEMENT: Redirection ${emailData.to} → ${verifiedEmail}`)
+          const originalRecipient = emailData.to
+          emailData = {
+            ...emailData,
+            to: verifiedEmail,
+            subject: `[DEV-REDIRECT] ${emailData.subject}`,
+            html: emailData.html?.replace(
+              '<body>',
+              `<body>
+              <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 10px; margin-bottom: 20px; border-radius: 6px;">
+                <p style="margin: 0; color: #92400e; font-size: 14px;">
+                  <strong>📧 Email Redirigé (MODE DEV):</strong> Cet email était destiné à ${originalRecipient} mais a été redirigé vers ${verifiedEmail}
+                </p>
+              </div>`
+            ),
+            text: `📧 EMAIL REDIRIGÉ (MODE DEV): Destinataire original: ${originalRecipient} → Redirigé vers: ${verifiedEmail}\n\n${emailData.text}`
+          }
         }
       }
 

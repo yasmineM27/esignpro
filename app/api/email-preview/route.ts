@@ -4,10 +4,10 @@ import { generateClientEmailTemplate } from "@/lib/email-templates"
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const clientName = searchParams.get("clientName") || "Wael Hamda"
-  const clientId = searchParams.get("clientId") || "CLI_PREVIEW"
+  const clientId = searchParams.get("clientId") || crypto.randomUUID()
 
   // Generate a secure token for the client portal
-  const secureToken = `SECURE_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`
+  const secureToken = crypto.randomUUID().replace(/-/g, '')
   const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client/${secureToken}`
 
   const template = generateClientEmailTemplate({
