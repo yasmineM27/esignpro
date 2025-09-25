@@ -12,7 +12,7 @@ interface DocumentPreviewProps {
 
 export function DocumentPreview({ content, clientId }: DocumentPreviewProps) {
   const [downloadFormat, setDownloadFormat] = useState<"txt" | "html" | "pdf">("txt")
-  const portalLink = `${window.location.origin}/client/${clientId}`
+  const portalLink = `${window.location.origin}/client-portal/${clientId}`
   const emailPreviewLink = `${window.location.origin}/api/email-preview?clientName=Client&clientId=${clientId}`
 
   const downloadDocument = async (format: "txt" | "html" | "pdf" = "txt") => {

@@ -90,7 +90,7 @@ export function WorkflowTest() {
       description: "Test de l'accès au portail client et affichage des documents",
       icon: ExternalLink,
       status: 'pending',
-      url: "/client/CLI_TEST_E2E",
+      url: "/client-portal/CLI_TEST_E2E",
       testFunction: async () => {
         // Simuler l'accès au portail client
         return true
