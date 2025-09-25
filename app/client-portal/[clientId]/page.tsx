@@ -58,8 +58,8 @@ interface ClientWorkflowData {
   }
 }
 
-export default function ClientPortalPage({ params }: ClientPortalPageProps) {
-  const { clientId: token } = params // Le token est maintenant le clientId
+export default async function ClientPortalPage({ params }: ClientPortalPageProps) {
+  const { clientId: token } = await params // Le token est maintenant le clientId
   const [workflowData, setWorkflowData] = useState<ClientWorkflowData | null>(null)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(true)
