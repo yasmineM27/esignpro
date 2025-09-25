@@ -74,7 +74,7 @@ export default function DocumentationPage() {
         "Processus guidé étape par étape"
       ],
       status: "Implémenté",
-      url: "/client-portal/CLI_DEMO"
+      url: "/client/CLI_DEMO"
     },
     {
       id: 5,
@@ -304,7 +304,7 @@ export default function DocumentationPage() {
                 <h4 className="font-semibold">Interfaces Utilisateur</h4>
                 <div className="space-y-1 text-sm">
                   <p><Link href="/agent" className="text-blue-600 hover:underline">/agent</Link> - Interface Agent</p>
-                  <p><Link href="/client-portal/CLI_DEMO" className="text-blue-600 hover:underline">/client-portal/CLI_DEMO</Link> - Portail Client</p>
+                  <p><Link href="/client/CLI_DEMO" className="text-blue-600 hover:underline">/client/CLI_DEMO</Link> - Portail Client</p>
                   <p><Link href="/test-workflow" className="text-blue-600 hover:underline">/test-workflow</Link> - Tests E2E</p>
                 </div>
               </div>

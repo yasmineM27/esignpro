@@ -71,7 +71,7 @@ export default function ClientLoginPage() {
     })
 
     // Redirect to client portal
-    router.push(`/client-portal/${client.clientId}`)
+    router.push(`/client/${client.clientId}`)
   }
 
   const handleQuickLogin = (email: string, password: string) => {
