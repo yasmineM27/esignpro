@@ -25,9 +25,9 @@ import {
 import Image from "next/image"
 
 interface ClientPortalPageProps {
-  params: {
+  params: Promise<{
     clientId: string
-  }
+  }>
 }
 
 interface ClientWorkflowData {
@@ -59,7 +59,12 @@ interface ClientWorkflowData {
 }
 
 export default async function ClientPortalPage({ params }: ClientPortalPageProps) {
-  const { clientId: token } = await params // Le token est maintenant le clientId
+  const { clientId: token } = await params
+
+  return <ClientPortalContent token={token} />
+}
+
+function ClientPortalContent({ token }: { token: string }) {
   const [workflowData, setWorkflowData] = useState<ClientWorkflowData | null>(null)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -75,7 +80,7 @@ export default async function ClientPortalPage({ params }: ClientPortalPageProps
     additional: []
   })
 
-  // Charger les données du workflow au montage
+  // Charger les données du workflow
   useEffect(() => {
     const fetchWorkflowData = async () => {
       try {
@@ -134,7 +139,7 @@ export default async function ClientPortalPage({ params }: ClientPortalPageProps
     }
 
     fetchWorkflowData()
-  }, [token])
+  }, [])
 
   // Gestion des documents par type
   const handleDocumentsByType = (documentType: string, files: any[]) => {

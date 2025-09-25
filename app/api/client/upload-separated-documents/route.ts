@@ -138,14 +138,14 @@ export async function POST(request: NextRequest) {
             const { data, error } = await supabaseAdmin
               .from('client_documents')
               .insert([{
-                client_id: clientId,
+                clientid: clientId,
                 token: token,
-                document_type: documentType,
-                file_name: file.name,
-                file_path: relativePath,
-                file_size: file.size,
-                mime_type: file.type,
-                upload_date: new Date().toISOString(),
+                documenttype: documentType,
+                filename: file.name,
+                filepath: relativePath,
+                filesize: file.size,
+                mimetype: file.type,
+                uploaddate: new Date().toISOString(),
                 status: 'uploaded'
               }])
               .select()
@@ -219,9 +219,9 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('client_documents')
         .select('*')
-        .eq('client_id', clientId)
+        .eq('clientid', clientId)
         .eq('token', token)
-        .order('upload_date', { ascending: false })
+        .order('uploaddate', { ascending: false })
 
       if (error) {
         console.error('❌ Erreur récupération documents:', error)
@@ -233,10 +233,10 @@ export async function GET(request: NextRequest) {
 
       // Organiser par type de document
       const documentsByType = data.reduce((acc, doc) => {
-        if (!acc[doc.document_type]) {
-          acc[doc.document_type] = []
+        if (!acc[doc.documenttype]) {
+          acc[doc.documenttype] = []
         }
-        acc[doc.document_type].push(doc)
+        acc[doc.documenttype].push(doc)
         return acc
       }, {} as Record<string, any[]>)
 
