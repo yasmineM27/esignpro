@@ -11,14 +11,16 @@ import { Upload, File, X, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface FileUploaderProps {
-  type?: "identity" | "insurance" | "identity_front" | "identity_back"
+  type: "identity_front" | "identity_back" | "insurance_contract" | "additional" | "proof_address" | "bank_statement"
   onFilesUploaded: (files: { id: string; name: string; type: string; url: string }[]) => void
   uploadedFiles?: string[]
   acceptedTypes?: string[]
   maxFiles?: number
   description?: string
   instructions?: string
-  specificLabel?: string // Pour spécifier "RECTO" ou "VERSO"
+  specificLabel?: string
+  required?: boolean
+  title?: string
 }
 
 interface UploadedFile {
@@ -31,16 +33,83 @@ interface UploadedFile {
   progress: number
 }
 
+// Configuration des types de documents
+const DOCUMENT_CONFIGS = {
+  identity_front: {
+    title: "Carte d'Identité - RECTO",
+    description: "Face avant de votre carte d'identité",
+    instructions: "Assurez-vous que tous les détails sont lisibles",
+    maxFiles: 1,
+    acceptedTypes: ["image/jpeg", "image/png", "image/jpg"],
+    icon: "🆔",
+    required: true
+  },
+  identity_back: {
+    title: "Carte d'Identité - VERSO",
+    description: "Face arrière de votre carte d'identité",
+    instructions: "Vérifiez que l'adresse est visible",
+    maxFiles: 1,
+    acceptedTypes: ["image/jpeg", "image/png", "image/jpg"],
+    icon: "🆔",
+    required: true
+  },
+  insurance_contract: {
+    title: "Contrat d'Assurance",
+    description: "Votre contrat d'assurance actuel",
+    instructions: "Document PDF ou photo claire du contrat",
+    maxFiles: 3,
+    acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
+    icon: "📄",
+    required: true
+  },
+  proof_address: {
+    title: "Justificatif de Domicile",
+    description: "Facture récente (électricité, gaz, téléphone)",
+    instructions: "Document de moins de 3 mois",
+    maxFiles: 1,
+    acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
+    icon: "🏠",
+    required: false
+  },
+  bank_statement: {
+    title: "Relevé Bancaire",
+    description: "Relevé de compte pour remboursement",
+    instructions: "Masquez les détails sensibles si nécessaire",
+    maxFiles: 1,
+    acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
+    icon: "🏦",
+    required: false
+  },
+  additional: {
+    title: "Documents Supplémentaires",
+    description: "Autres documents utiles au dossier",
+    instructions: "Tout document complémentaire",
+    maxFiles: 5,
+    acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
+    icon: "📎",
+    required: false
+  }
+}
+
 export function FileUploader({
-  type = "identity",
+  type,
   onFilesUploaded,
   uploadedFiles = [],
-  acceptedTypes = ["image/jpeg", "image/png", "application/pdf"],
-  maxFiles = 2,
-  description = "Téléchargez vos documents",
+  acceptedTypes,
+  maxFiles,
+  description,
   instructions,
   specificLabel,
+  required,
+  title,
 }: FileUploaderProps) {
+  const config = DOCUMENT_CONFIGS[type]
+  const finalTitle = title || config.title
+  const finalDescription = description || config.description
+  const finalInstructions = instructions || config.instructions
+  const finalMaxFiles = maxFiles || config.maxFiles
+  const finalAcceptedTypes = acceptedTypes || config.acceptedTypes
+  const finalRequired = required !== undefined ? required : config.required
   const { toast } = useToast()
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
@@ -74,17 +143,17 @@ export function FileUploader({
   )
 
   const handleFiles = async (newFiles: File[]) => {
-    if (files.length + newFiles.length > maxFiles) {
+    if (files.length + newFiles.length > finalMaxFiles) {
       toast({
         title: "Limite dépassée",
-        description: `Vous ne pouvez uploader que ${maxFiles} fichier(s) maximum.`,
+        description: `Vous ne pouvez uploader que ${finalMaxFiles} fichier(s) maximum pour ${finalTitle}.`,
         variant: "destructive",
       })
       return
     }
 
     // Validate file types
-    const acceptedTypesArray = Array.isArray(acceptedTypes) ? acceptedTypes : [acceptedTypes]
+    const acceptedTypesArray = Array.isArray(finalAcceptedTypes) ? finalAcceptedTypes : [finalAcceptedTypes]
     const invalidFiles = newFiles.filter((file) => {
       return !acceptedTypesArray.includes(file.type)
     })
@@ -92,7 +161,7 @@ export function FileUploader({
     if (invalidFiles.length > 0) {
       toast({
         title: "Type de fichier non supporté",
-        description: `Types acceptés: ${acceptedTypesArray.join(", ")}`,
+        description: `Types acceptés pour ${finalTitle}: ${acceptedTypesArray.map(t => t.split('/')[1].toUpperCase()).join(", ")}`,
         variant: "destructive",
       })
       return
@@ -145,18 +214,20 @@ export function FileUploader({
         prev.map((f) => (f.id === uploadFile.id ? { ...f, status: "completed", progress: 100, url } : f)),
       )
 
-      // Update parent component
+      // Update parent component with document type
       const completedFiles = files.filter((f) => f.status === "completed").map((f) => ({
         id: f.id,
         name: f.name,
-        type: f.type,
-        url: f.url
+        type: type, // Use the document type instead of file MIME type
+        url: f.url,
+        documentType: type
       }))
       completedFiles.push({
         id: uploadFile.id,
         name: uploadFile.name,
-        type: uploadFile.type,
-        url
+        type: type, // Use the document type
+        url,
+        documentType: type
       })
       onFilesUploaded(completedFiles)
 
@@ -202,7 +273,7 @@ export function FileUploader({
   }
 
   const completedFiles = files.filter((f) => f.status === "completed")
-  const canUploadMore = completedFiles.length < maxFiles
+  const canUploadMore = completedFiles.length < finalMaxFiles
 
   return (
     <div className="space-y-4">

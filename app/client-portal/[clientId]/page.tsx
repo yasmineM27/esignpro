@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { FileUploader } from "@/components/file-uploader"
+import { SeparatedDocumentUploader } from "@/components/separated-document-uploader"
 import { DocumentViewer } from "@/components/document-viewer"
 import { DigitalSignature } from "@/components/digital-signature"
 import {
@@ -66,6 +66,14 @@ export default function ClientPortalPage({ params }: ClientPortalPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [documentsByType, setDocumentsByType] = useState<{[key: string]: any[]}>({
+    identity_front: [],
+    identity_back: [],
+    insurance_contract: [],
+    proof_address: [],
+    bank_statement: [],
+    additional: []
+  })
 
   // Charger les données du workflow au montage
   useEffect(() => {
@@ -127,6 +135,30 @@ export default function ClientPortalPage({ params }: ClientPortalPageProps) {
 
     fetchWorkflowData()
   }, [token])
+
+  // Gestion des documents par type
+  const handleDocumentsByType = (documentType: string, files: any[]) => {
+    console.log(`Documents uploaded for ${documentType}:`, files)
+    setDocumentsByType(prev => ({
+      ...prev,
+      [documentType]: files
+    }))
+  }
+
+  const getTotalUploadedDocuments = () => {
+    return Object.values(documentsByType).reduce((total, docs) => total + docs.length, 0)
+  }
+
+  const getRequiredDocumentsCount = () => {
+    const requiredTypes = ['identity_front', 'identity_back', 'insurance_contract']
+    return requiredTypes.reduce((count, type) => {
+      return count + (documentsByType[type].length > 0 ? 1 : 0)
+    }, 0)
+  }
+
+  const areRequiredDocumentsUploaded = () => {
+    return getRequiredDocumentsCount() === 3 // 3 documents obligatoires
+  }
 
   // Gestion de l'upload de fichiers
   const handleFileUpload = async (files: File[]) => {
@@ -358,13 +390,102 @@ export default function ClientPortalPage({ params }: ClientPortalPageProps) {
                   Veuillez télécharger vos pièces d'identité pour vérification
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <FileUploader
-                  onFilesUploaded={handleFileUpload}
-                  acceptedTypes={["image/*", ".pdf"]}
-                  maxFiles={3}
-                  isSubmitting={isSubmitting}
-                />
+              <CardContent className="space-y-6">
+                {/* Documents Obligatoires */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg text-gray-900 border-b pb-2">
+                    📋 Documents Obligatoires
+                  </h4>
+
+                  <SeparatedDocumentUploader
+                    type="identity_front"
+                    onFilesUploaded={(files) => handleDocumentsByType('identity_front', files)}
+                    uploadedFiles={documentsByType.identity_front}
+                  />
+
+                  <SeparatedDocumentUploader
+                    type="identity_back"
+                    onFilesUploaded={(files) => handleDocumentsByType('identity_back', files)}
+                    uploadedFiles={documentsByType.identity_back}
+                  />
+
+                  <SeparatedDocumentUploader
+                    type="insurance_contract"
+                    onFilesUploaded={(files) => handleDocumentsByType('insurance_contract', files)}
+                    uploadedFiles={documentsByType.insurance_contract}
+                  />
+                </div>
+
+                {/* Documents Optionnels */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg text-gray-700 border-b pb-2">
+                    📎 Documents Optionnels
+                  </h4>
+
+                  <SeparatedDocumentUploader
+                    type="proof_address"
+                    onFilesUploaded={(files) => handleDocumentsByType('proof_address', files)}
+                    uploadedFiles={documentsByType.proof_address}
+                  />
+
+                  <SeparatedDocumentUploader
+                    type="bank_statement"
+                    onFilesUploaded={(files) => handleDocumentsByType('bank_statement', files)}
+                    uploadedFiles={documentsByType.bank_statement}
+                  />
+
+                  <SeparatedDocumentUploader
+                    type="additional"
+                    onFilesUploaded={(files) => handleDocumentsByType('additional', files)}
+                    uploadedFiles={documentsByType.additional}
+                  />
+                </div>
+
+                {/* Résumé des uploads */}
+                <div className="bg-gray-50 rounded-lg p-4 border">
+                  <h5 className="font-medium text-gray-900 mb-2">📊 Résumé des Documents</h5>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Documents obligatoires :</span>
+                      <span className={`ml-2 font-medium ${areRequiredDocumentsUploaded() ? 'text-green-600' : 'text-red-600'}`}>
+                        {getRequiredDocumentsCount()}/3
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Total documents :</span>
+                      <span className="ml-2 font-medium text-blue-600">
+                        {getTotalUploadedDocuments()}
+                      </span>
+                    </div>
+                  </div>
+                  {areRequiredDocumentsUploaded() && (
+                    <div className="mt-3 flex items-center text-green-600">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      <span className="text-sm font-medium">Tous les documents obligatoires sont uploadés ✅</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bouton de validation */}
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={() => setCurrentStep(3)}
+                    disabled={!areRequiredDocumentsUploaded() || isSubmitting}
+                    className="px-8 py-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Validation en cours...
+                      </>
+                    ) : (
+                      <>
+                        Valider les documents
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
