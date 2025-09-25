@@ -84,55 +84,124 @@ export default function ClientWorkflowPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate loading client workflow data
-    setTimeout(() => {
+    // Debug: Log token information
+    console.log('🔍 Client Portal - Token reçu:', token)
+    console.log('🔍 Token length:', token.length)
+    console.log('🔍 Token format check:', {
+      isUUIDWithoutHyphens: /^[0-9a-f]{32}$/i.test(token),
+      isUUIDWithHyphens: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token),
+      startsWithSECURE: token.startsWith('SECURE_'),
+      isLongEnough: token.length >= 20
+    })
+
+    // Validate token via API
+    const validateToken = async () => {
+      try {
+        const response = await fetch(`/api/client/validate-token?token=${encodeURIComponent(token)}`)
+        const result = await response.json()
+
+        console.log('🔍 Résultat validation API:', result)
+
+        if (result.valid && result.data) {
+          // Convertir les données API vers le format attendu
+          const apiData = result.data
+          return {
+            token,
+            clientName: apiData.clientName,
+            clientEmail: apiData.clientEmail,
+            agentName: apiData.agentName,
+            agentEmail: apiData.agentEmail,
+            documentType: apiData.documentType,
+            createdAt: apiData.createdAt || new Date().toISOString(),
+            expiresAt: apiData.expiresAt,
+            status: apiData.status as any || "email_sent",
+            documents: [
+              {
+                id: "doc1",
+                name: `Document - ${apiData.documentType}`,
+                type: "pdf",
+                url: "/documents/document-generated.pdf"
+              }
+            ],
+            uploadedFiles: [],
+          }
+        }
+        return null
+      } catch (error) {
+        console.error('❌ Erreur validation token:', error)
+        return null
+      }
+    }
+
+    // Essayer d'abord les données mock, puis la validation API
+    const loadData = async () => {
       let data = mockClientData[token]
 
-      // If token is not in mock data but starts with "SECURE_", create dynamic mock data
-      if (!data && token.startsWith('SECURE_')) {
-        data = {
-          token,
-          clientName: "Client eSignPro",
-          clientEmail: "yasminemassaoudi27@gmail.com",
-          agentName: "Wael Hamda",
-          agentEmail: "wael.hamda@esignpro.ch",
-          documentType: "Résiliation Assurance",
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-          status: "email_sent" as const,
-          documents: [
-            {
-              id: "doc1",
-              name: "Lettre de résiliation - Assurance",
-              type: "pdf",
-              url: "/documents/resiliation-assurance.pdf"
-            }
-          ],
-          uploadedFiles: [],
-        }
+      // Si pas de données mock, essayer la validation API
+      if (!data) {
+        data = await validateToken()
       }
 
-      if (data) {
-        setWorkflowData(data)
-        // Determine current step based on status
-        switch (data.status) {
-          case "email_sent":
-            setCurrentStep(1)
-            break
-          case "documents_uploaded":
-            setCurrentStep(2)
-            break
-          case "document_reviewed":
-            setCurrentStep(3)
-            break
-          case "signed":
-          case "completed":
-            setCurrentStep(4)
-            break
+      // Fallback: validation basique pour les tokens qui semblent valides
+      if (!data) {
+        const isValidToken = (token: string): boolean => {
+          if (/^[0-9a-f]{32}$/i.test(token)) return true
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) return true
+          if (token.startsWith('SECURE_') && token.length > 10) return true
+          if (token.length >= 20) return true
+          return false
         }
+
+          if (isValidToken(token)) {
+            data = {
+              token,
+              clientName: "Client eSignPro",
+              clientEmail: "yasminemassaoudi27@gmail.com",
+              agentName: "Wael Hamda",
+              agentEmail: "wael.hamda@esignpro.ch",
+              documentType: "Résiliation Assurance",
+              createdAt: new Date().toISOString(),
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              status: "email_sent" as const,
+              documents: [
+                {
+                  id: "doc1",
+                  name: "Lettre de résiliation - Assurance",
+                  type: "pdf",
+                  url: "/documents/resiliation-assurance.pdf"
+                }
+              ],
+              uploadedFiles: [],
+            }
+          }
+        }
+
+        if (data) {
+          console.log('✅ Données client chargées:', data)
+          setWorkflowData(data)
+          // Determine current step based on status
+          switch (data.status) {
+            case "email_sent":
+              setCurrentStep(1)
+              break
+            case "documents_uploaded":
+              setCurrentStep(2)
+              break
+            case "document_reviewed":
+              setCurrentStep(3)
+              break
+            case "signed":
+            case "completed":
+              setCurrentStep(4)
+              break
+          }
+        } else {
+          console.log('❌ Aucune donnée trouvée pour le token:', token)
+        }
+        setIsLoading(false)
       }
-      setIsLoading(false)
-    }, 1000)
+
+      loadData()
   }, [token])
 
   const handleFileUpload = (files: { id: string; name: string; type: string; url: string }[]) => {
