@@ -161,10 +161,25 @@ export class DatabaseService {
         return true
       }
 
+      // Vérifier si le case_id existe avant de logger
+      let validCaseId = data.caseId
+      if (data.caseId) {
+        const { data: caseExists } = await supabaseAdmin
+          .from('insurance_cases')
+          .select('id')
+          .eq('id', data.caseId)
+          .single()
+
+        if (!caseExists) {
+          console.warn(`[DB] Case ID ${data.caseId} not found, logging email without case_id`)
+          validCaseId = undefined
+        }
+      }
+
       const { error } = await supabaseAdmin
         .from('email_logs')
         .insert([{
-          case_id: data.caseId,
+          case_id: validCaseId,
           recipient_email: data.recipientEmail,
           sender_email: 'noreply@esignpro.ch',
           subject: data.subject,
@@ -176,6 +191,32 @@ export class DatabaseService {
 
       if (error) {
         console.error('[DB] Error logging email:', error)
+
+        // Si l'erreur est due à une contrainte de clé étrangère, essayer sans case_id
+        if (error.code === '23503' && validCaseId) {
+          console.warn('[DB] Foreign key constraint error, retrying without case_id')
+          const { error: retryError } = await supabaseAdmin
+            .from('email_logs')
+            .insert([{
+              case_id: undefined,
+              recipient_email: data.recipientEmail,
+              sender_email: 'noreply@esignpro.ch',
+              subject: data.subject,
+              body_html: data.bodyHtml,
+              body_text: data.bodyText,
+              status: data.status || 'sent',
+              sent_at: new Date().toISOString()
+            }])
+
+          if (retryError) {
+            console.error('[DB] Error logging email (retry):', retryError)
+            return false
+          } else {
+            console.log('[DB] Email logged successfully without case_id')
+            return true
+          }
+        }
+
         return false
       }
 

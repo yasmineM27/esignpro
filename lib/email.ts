@@ -482,12 +482,40 @@ Votre service email Resend est correctement configuré et opérationnel.
 
   private async logEmail(emailLog: Partial<EmailLog>): Promise<void> {
     try {
+      // Vérifier si le case_id existe avant de logger
+      if (emailLog.case_id) {
+        const { data: caseExists } = await supabaseAdmin
+          .from('insurance_cases')
+          .select('id')
+          .eq('id', emailLog.case_id)
+          .single()
+
+        if (!caseExists) {
+          console.warn(`Case ID ${emailLog.case_id} not found, logging email without case_id`)
+          emailLog.case_id = undefined
+        }
+      }
+
       const { error } = await supabaseAdmin
         .from('email_logs')
         .insert([emailLog])
 
       if (error) {
         console.error('Error logging email:', error)
+        // Si l'erreur est due à une contrainte de clé étrangère, essayer sans case_id
+        if (error.code === '23503' && emailLog.case_id) {
+          console.warn('Foreign key constraint error, retrying without case_id')
+          const emailLogWithoutCase = { ...emailLog, case_id: undefined }
+          const { error: retryError } = await supabaseAdmin
+            .from('email_logs')
+            .insert([emailLogWithoutCase])
+
+          if (retryError) {
+            console.error('Error logging email (retry):', retryError)
+          } else {
+            console.log('Email logged successfully without case_id')
+          }
+        }
       }
     } catch (error) {
       console.error('Error logging email:', error)
