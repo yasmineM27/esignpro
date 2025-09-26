@@ -784,12 +784,12 @@ expected_tables TEXT [] := ARRAY [
         'client_documents', 'email_templates', 'email_logs', 'signatures',
         'signature_logs', 'final_documents', 'notifications', 'audit_logs', 'system_settings'
     ];
-table_name TEXT;
+missing_table TEXT;
 BEGIN
 SELECT COUNT(*) INTO table_count
-FROM information_schema.tables
-WHERE table_schema = 'public'
-    AND table_name = ANY(expected_tables);
+FROM information_schema.tables t
+WHERE t.table_schema = 'public'
+    AND t.table_name = ANY(expected_tables);
 IF table_count = array_length(expected_tables, 1) THEN RAISE NOTICE '✅ Toutes les tables ont été créées avec succès (%/% tables)',
 table_count,
 array_length(expected_tables, 1);
@@ -797,13 +797,13 @@ ELSE RAISE NOTICE '⚠️ Attention: %/% tables créées',
 table_count,
 array_length(expected_tables, 1);
 -- Lister les tables manquantes
-FOR table_name IN
+FOR missing_table IN
 SELECT unnest(expected_tables)
 EXCEPT
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public' LOOP RAISE NOTICE '❌ Table manquante: %',
-    table_name;
+SELECT t.table_name
+FROM information_schema.tables t
+WHERE t.table_schema = 'public' LOOP RAISE NOTICE '❌ Table manquante: %',
+    missing_table;
 END LOOP;
 END IF;
 END $$;
