@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface DocumentData {
   id: string;
@@ -29,6 +29,90 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [showSignature, setShowSignature] = useState(false);
+  const [signature, setSignature] = useState<string>('');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Fonctions de signature
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setSignature(canvas.toDataURL());
+    }
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setSignature('');
+  };
+
+  const handleSignDocument = async () => {
+    if (!signature) {
+      alert('Veuillez signer le document avant de continuer');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/client/save-signature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: token,
+          signature: signature,
+          caseId: token // Utiliser le token comme ID temporaire
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('✅ Document signé avec succès ! Votre dossier est maintenant complet.');
+        setShowSignature(false);
+      } else {
+        alert('❌ Erreur lors de la signature: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Erreur signature:', error);
+      alert('❌ Erreur lors de la signature');
+    }
+  };
 
   const handleFileUpload = useCallback(async (files: FileList, documentType: string) => {
     if (!files.length) return;
@@ -376,8 +460,8 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
 
                 if (result.success) {
                   alert('✅ ' + result.message);
-                  // Rediriger vers la page de signature alternative
-                  window.location.href = `/signature/${token}`;
+                  // Afficher la section signature
+                  setShowSignature(true);
                 } else {
                   alert('❌ Erreur: ' + result.error);
                 }
@@ -399,6 +483,118 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
           >
             ✅ Finaliser le dossier et signer
           </button>
+        </div>
+      )}
+
+      {/* Section de signature */}
+      {showSignature && (
+        <div style={{
+          marginTop: '30px',
+          padding: '30px',
+          backgroundColor: '#f0fdf4',
+          borderRadius: '12px',
+          border: '2px solid #10b981'
+        }}>
+          <h3 style={{
+            margin: '0 0 20px 0',
+            color: '#166534',
+            fontSize: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            ✍️ Signature Électronique
+          </h3>
+
+          <p style={{
+            margin: '0 0 20px 0',
+            color: '#166534'
+          }}>
+            Veuillez signer dans la zone ci-dessous pour finaliser votre dossier.
+          </p>
+
+          <div style={{
+            border: '2px dashed #10b981',
+            borderRadius: '8px',
+            padding: '20px',
+            textAlign: 'center',
+            marginBottom: '20px',
+            backgroundColor: 'white'
+          }}>
+            <canvas
+              ref={canvasRef}
+              width={600}
+              height={200}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              style={{
+                border: '1px solid #10b981',
+                borderRadius: '4px',
+                cursor: 'crosshair',
+                maxWidth: '100%',
+                backgroundColor: 'white'
+              }}
+            />
+            <p style={{
+              margin: '10px 0 0 0',
+              fontSize: '14px',
+              color: '#166534'
+            }}>
+              Signez ici avec votre souris ou votre doigt
+            </p>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            gap: '15px',
+            justifyContent: 'center'
+          }}>
+            <button
+              onClick={clearSignature}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              🗑️ Effacer
+            </button>
+            <button
+              onClick={() => setShowSignature(false)}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#dc2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              ❌ Annuler
+            </button>
+            <button
+              onClick={handleSignDocument}
+              disabled={!signature}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: signature ? '#10b981' : '#d1d5db',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: signature ? 'pointer' : 'not-allowed'
+              }}
+            >
+              ✅ Valider la signature
+            </button>
+          </div>
         </div>
       )}
     </div>
