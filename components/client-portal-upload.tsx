@@ -344,8 +344,8 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
 
       {/* Actions finales */}
       {allRequiredDocumentsUploaded() && (
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '30px',
           backgroundColor: '#f0fdf4',
           borderRadius: '12px',
@@ -356,19 +356,48 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
             Félicitations ! Tous les documents requis ont été uploadés.
           </h3>
           <p style={{ margin: '0 0 20px 0', color: '#166534' }}>
-            Vous pouvez maintenant finaliser votre dossier.
+            Vous pouvez maintenant finaliser votre dossier et procéder à la signature.
           </p>
-          <button style={{ 
-            padding: '15px 30px', 
-            backgroundColor: '#10b981', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '8px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}>
-            ✅ Finaliser le dossier
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/client/finalize-case', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    token: token,
+                    clientId: token
+                  }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                  alert('✅ ' + result.message);
+                  // Rediriger vers la page de signature
+                  window.location.href = `/secure-signature/${token}`;
+                } else {
+                  alert('❌ Erreur: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Erreur finalisation:', error);
+                alert('❌ Erreur lors de la finalisation');
+              }
+            }}
+            style={{
+              padding: '15px 30px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            ✅ Finaliser le dossier et signer
           </button>
         </div>
       )}
