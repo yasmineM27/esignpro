@@ -10,7 +10,11 @@ try {
   createAuditLog = supabaseModule.createAuditLog
 } catch (error) {
   console.warn('[DB] Supabase not configured, using mock mode')
-  generateSecureToken = () => crypto.randomUUID().replace(/-/g, '')
+  generateSecureToken = () => {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const randomPart = Math.random().toString(36).substring(2, 17).toLowerCase()
+    return `SECURE_${timestamp}_${randomPart}`
+  }
   createAuditLog = async () => console.log('[DB] Audit log (mock mode)')
 }
 
