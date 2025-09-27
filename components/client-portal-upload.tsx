@@ -376,8 +376,8 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
 
                 if (result.success) {
                   alert('✅ ' + result.message);
-                  // Rediriger vers la page de signature
-                  window.location.href = `/secure-signature/${token}`;
+                  // Rediriger vers la page de signature alternative
+                  window.location.href = `/signature/${token}`;
                 } else {
                   alert('❌ Erreur: ' + result.error);
                 }
