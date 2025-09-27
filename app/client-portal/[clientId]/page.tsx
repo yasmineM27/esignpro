@@ -30,48 +30,54 @@ interface DocumentData {
 // Fonction pour récupérer les données du dossier
 async function getCaseData(token: string): Promise<CaseData | null> {
   try {
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const { supabaseAdmin } = require('@/lib/supabase');
 
-    const { data, error } = await supabase
+    // Récupérer le dossier
+    const { data: caseData, error: caseError } = await supabaseAdmin
       .from('insurance_cases')
-      .select(`
-        id,
-        case_number,
-        secure_token,
-        status,
-        insurance_company,
-        policy_number,
-        expires_at,
-        clients!inner(
-          users!inner(
-            first_name,
-            last_name,
-            email
-          )
-        )
-      `)
+      .select('id, case_number, secure_token, status, insurance_company, policy_number, expires_at, client_id')
       .eq('secure_token', token)
       .single();
 
-    if (error || !data) {
-      console.error('Erreur récupération dossier:', error);
+    if (caseError || !caseData) {
+      console.error('Erreur récupération dossier:', caseError);
+      return null;
+    }
+
+    // Récupérer le client
+    const { data: clientData, error: clientError } = await supabaseAdmin
+      .from('clients')
+      .select('user_id')
+      .eq('id', caseData.client_id)
+      .single();
+
+    if (clientError || !clientData) {
+      console.error('Erreur récupération client:', clientError);
+      return null;
+    }
+
+    // Récupérer l'utilisateur
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('first_name, last_name, email')
+      .eq('id', clientData.user_id)
+      .single();
+
+    if (userError || !userData) {
+      console.error('Erreur récupération utilisateur:', userError);
       return null;
     }
 
     return {
-      id: data.id,
-      case_number: data.case_number,
-      secure_token: data.secure_token,
-      status: data.status,
-      insurance_company: data.insurance_company || '',
-      policy_number: data.policy_number || '',
-      client_name: `${data.clients.users.first_name} ${data.clients.users.last_name}`,
-      client_email: data.clients.users.email,
-      expires_at: data.expires_at
+      id: caseData.id,
+      case_number: caseData.case_number,
+      secure_token: caseData.secure_token,
+      status: caseData.status,
+      insurance_company: caseData.insurance_company || '',
+      policy_number: caseData.policy_number || '',
+      client_name: `${userData.first_name} ${userData.last_name}`,
+      client_email: userData.email,
+      expires_at: caseData.expires_at
     };
   } catch (error) {
     console.error('Erreur connexion base:', error);
@@ -82,13 +88,9 @@ async function getCaseData(token: string): Promise<CaseData | null> {
 // Fonction pour récupérer les documents
 async function getDocuments(token: string): Promise<DocumentData[]> {
   try {
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const { supabaseAdmin } = require('@/lib/supabase');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('client_documents')
       .select('id, documenttype, filename, status, uploaddate')
       .eq('token', token)

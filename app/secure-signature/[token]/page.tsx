@@ -387,14 +387,14 @@ export default function SecureSignaturePage() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => setCurrentStep(2)}
-              style={{ 
+              style={{
                 width: '100%',
-                padding: '15px 30px', 
-                backgroundColor: '#3b82f6', 
-                color: 'white', 
-                border: 'none', 
+                padding: '15px 30px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontWeight: 'bold',
@@ -407,15 +407,15 @@ export default function SecureSignaturePage() {
         )}
 
         {currentStep === 2 && (
-          <div style={{ 
+          <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
             padding: '40px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}>
-            <h2 style={{ 
-              margin: '0 0 20px 0', 
-              fontSize: '24px', 
+            <h2 style={{
+              margin: '0 0 20px 0',
+              fontSize: '24px',
               color: '#1f2937',
               display: 'flex',
               alignItems: 'center',
@@ -424,14 +424,14 @@ export default function SecureSignaturePage() {
               ✍️ Signature Électronique
             </h2>
 
-            <p style={{ 
-              margin: '0 0 20px 0', 
-              color: '#6b7280' 
+            <p style={{
+              margin: '0 0 20px 0',
+              color: '#6b7280'
             }}>
               Veuillez signer dans la zone ci-dessous avec votre souris ou votre doigt sur mobile.
             </p>
 
-            <div style={{ 
+            <div style={{
               border: '2px dashed #cbd5e1',
               borderRadius: '8px',
               padding: '20px',
@@ -446,7 +446,7 @@ export default function SecureSignaturePage() {
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
-                style={{ 
+                style={{
                   border: '1px solid #e5e7eb',
                   borderRadius: '4px',
                   cursor: 'crosshair',
@@ -454,27 +454,27 @@ export default function SecureSignaturePage() {
                   backgroundColor: 'white'
                 }}
               />
-              <p style={{ 
-                margin: '10px 0 0 0', 
-                fontSize: '14px', 
-                color: '#6b7280' 
+              <p style={{
+                margin: '10px 0 0 0',
+                fontSize: '14px',
+                color: '#6b7280'
               }}>
                 Signez ici
               </p>
             </div>
 
-            <div style={{ 
-              display: 'flex', 
-              gap: '15px', 
-              justifyContent: 'center' 
+            <div style={{
+              display: 'flex',
+              gap: '15px',
+              justifyContent: 'center'
             }}>
-              <button 
+              <button
                 onClick={clearSignature}
-                style={{ 
-                  padding: '12px 24px', 
-                  backgroundColor: '#6b7280', 
-                  color: 'white', 
-                  border: 'none', 
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
                   cursor: 'pointer'
@@ -482,14 +482,14 @@ export default function SecureSignaturePage() {
               >
                 🗑️ Effacer
               </button>
-              <button 
+              <button
                 onClick={handleSignDocument}
                 disabled={!signature}
-                style={{ 
-                  padding: '12px 24px', 
-                  backgroundColor: signature ? '#10b981' : '#d1d5db', 
-                  color: 'white', 
-                  border: 'none', 
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: signature ? '#10b981' : '#d1d5db',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
                   cursor: signature ? 'pointer' : 'not-allowed'
@@ -502,7 +502,7 @@ export default function SecureSignaturePage() {
         )}
 
         {currentStep === 3 && (
-          <div style={{ 
+          <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
             padding: '40px',
@@ -510,31 +510,31 @@ export default function SecureSignaturePage() {
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}>
             <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎉</div>
-            <h2 style={{ 
-              margin: '0 0 15px 0', 
-              fontSize: '28px', 
-              color: '#10b981' 
+            <h2 style={{
+              margin: '0 0 15px 0',
+              fontSize: '28px',
+              color: '#10b981'
             }}>
               Signature Terminée !
             </h2>
-            <p style={{ 
-              margin: '0 0 30px 0', 
+            <p style={{
+              margin: '0 0 30px 0',
               color: '#6b7280',
               fontSize: '16px'
             }}>
               Votre document a été signé avec succès.
             </p>
-            
-            <div style={{ 
+
+            <div style={{
               backgroundColor: '#f0fdf4',
               border: '1px solid #bbf7d0',
               borderRadius: '8px',
               padding: '20px',
               marginBottom: '30px'
             }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
                 marginBottom: '10px'
@@ -549,10 +549,10 @@ export default function SecureSignaturePage() {
               </p>
             </div>
 
-            <p style={{ 
-              margin: '0', 
-              fontSize: '14px', 
-              color: '#9ca3af' 
+            <p style={{
+              margin: '0',
+              fontSize: '14px',
+              color: '#9ca3af'
             }}>
               Vous recevrez une confirmation par email une fois le traitement terminé.
             </p>
