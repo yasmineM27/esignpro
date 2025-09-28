@@ -496,6 +496,11 @@ Votre service email Resend est correctement configuré et opérationnel.
         }
       }
 
+      // Ensure external_id is provided, use a fallback if not
+      if (!emailLog.external_id) {
+        emailLog.external_id = `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      }
+
       const { error } = await supabaseAdmin
         .from('email_logs')
         .insert([emailLog])
@@ -514,6 +519,26 @@ Votre service email Resend est correctement configuré et opérationnel.
             console.error('Error logging email (retry):', retryError)
           } else {
             console.log('Email logged successfully without case_id')
+          }
+        }
+        // If it's a column not found error, try inserting without problematic columns
+        else if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+          console.warn('Column issue detected, trying simplified insert')
+          const simplifiedLog = {
+            recipient_email: emailLog.recipient_email,
+            sender_email: emailLog.sender_email,
+            subject: emailLog.subject,
+            status: emailLog.status,
+            sent_at: emailLog.sent_at
+          }
+          const { error: simpleError } = await supabaseAdmin
+            .from('email_logs')
+            .insert([simplifiedLog])
+
+          if (simpleError) {
+            console.error('Simplified email logging also failed:', simpleError)
+          } else {
+            console.log('Email logged with simplified schema')
           }
         }
       }
