@@ -36,14 +36,12 @@ export async function GET(request: NextRequest) {
             last_name,
             email,
             phone,
-            address,
             created_at
           )
         ),
         signatures(
           id,
           signed_at,
-          validation_status,
           is_valid
         )
       `);
@@ -89,7 +87,7 @@ export async function GET(request: NextRequest) {
       fullName: `${caseItem.clients.users.first_name} ${caseItem.clients.users.last_name}`,
       email: caseItem.clients.users.email,
       phone: caseItem.clients.users.phone,
-      address: caseItem.clients.users.address,
+      address: null, // Colonne non disponible
       clientCreatedAt: caseItem.clients.users.created_at,
       
       // Informations du dossier
@@ -111,7 +109,7 @@ export async function GET(request: NextRequest) {
       signature: caseItem.signatures && caseItem.signatures.length > 0 ? {
         id: caseItem.signatures[0].id,
         signedAt: caseItem.signatures[0].signed_at,
-        validationStatus: caseItem.signatures[0].validation_status,
+        validationStatus: 'signed', // Valeur par défaut
         isValid: caseItem.signatures[0].is_valid
       } : null,
       

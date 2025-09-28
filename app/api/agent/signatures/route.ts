@@ -21,10 +21,8 @@ export async function GET(request: NextRequest) {
         is_valid,
         ip_address,
         user_agent,
-        validation_status,
         validated_at,
         validated_by,
-        validation_notes,
         insurance_cases!inner(
           id,
           case_number,
@@ -46,7 +44,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('validation_status', status)
+      .not('signed_at', 'is', null)
       .order('signed_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         signed_at,
-        validation_status,
+        is_valid,
         insurance_cases!inner(
           id,
           created_at,
@@ -81,9 +81,9 @@ export async function GET(request: NextRequest) {
 
       // Signatures
       totalSignatures: signatures?.length || 0,
-      signaturesValidated: signatures?.filter(s => s.validation_status === 'validated').length || 0,
-      signaturesPending: signatures?.filter(s => s.validation_status === 'signed').length || 0,
-      signaturesRejected: signatures?.filter(s => s.validation_status === 'rejected').length || 0,
+      signaturesValidated: signatures?.filter(s => s.is_valid === true).length || 0,
+      signaturesPending: signatures?.filter(s => s.is_valid === null).length || 0,
+      signaturesRejected: signatures?.filter(s => s.is_valid === false).length || 0,
 
       // Emails
       totalEmails: emails?.length || 0,
