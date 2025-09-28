@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Vérifier que le dossier existe
+    // Vérifier que le dossier existe (utiliser seulement le token)
     const { data: caseData, error: caseError } = await supabaseAdmin
       .from('insurance_cases')
       .select(`
@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
         )
       `)
       .eq('secure_token', token)
-      .eq('id', caseId)
       .single();
 
     if (caseError || !caseData) {
@@ -42,11 +41,12 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Sauvegarder la signature
+    // Sauvegarder la signature (utiliser l'ID réel du dossier)
+    const realCaseId = caseData.id;
     const { data: signatureData, error: signatureError } = await supabaseAdmin
       .from('signatures')
       .insert([{
-        case_id: caseId,
+        case_id: realCaseId,
         signature_data: signature,
         signature_metadata: {
           timestamp: new Date().toISOString(),
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq('id', caseId)
+      .eq('id', realCaseId)
       .select()
       .single();
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from('audit_logs')
       .insert([{
-        case_id: caseId,
+        case_id: realCaseId,
         action: 'document_signed',
         entity_type: 'signature',
         entity_id: signatureData.id,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from('email_logs')
       .insert([{
-        case_id: caseId,
+        case_id: realCaseId,
         recipient_email: 'admin@esignpro.ch', // Email de l'admin
         sender_email: 'noreply@esignpro.ch',
         subject: `Document signé - Dossier ${caseData.case_number}`,
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         client_name: `${caseData.clients.users.first_name} ${caseData.clients.users.last_name}`
       },
       case: {
-        id: updatedCase?.id || caseId,
+        id: updatedCase?.id || realCaseId,
         status: 'signed',
         completed_at: new Date().toISOString()
       }
