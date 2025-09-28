@@ -1,571 +1,409 @@
-'use client';
+"use client"
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
+import { DigitalSignature } from "@/components/digital-signature"
+import { DocumentViewer } from "@/components/document-viewer"
+import { FileUploader } from "@/components/file-uploader"
+import { Shield, Lock, CheckCircle, AlertTriangle, FileText, Upload, PenTool, Clock } from "lucide-react"
+import Image from "next/image"
 
-interface CaseData {
-  id: string;
-  case_number: string;
-  secure_token: string;
-  status: string;
-  insurance_company: string;
-  policy_number: string;
-  client_name: string;
-  client_email: string;
+interface SecureSignatureData {
+  token: string
+  clientName: string
+  agentName: string
+  documentType: string
+  expiresAt: string
+  status: "pending" | "documents_uploaded" | "ready_to_sign" | "signed" | "expired"
+  documents: {
+    id: string
+    name: string
+    type: string
+    url: string
+  }[]
+  uploadedFiles: {
+    id: string
+    name: string
+    type: "id_front" | "id_back" | "additional"
+    url: string
+  }[]
+  signatureData?: {
+    signature: string
+    timestamp: string
+  }
+}
+
+// Mock data for secure signature session
+const mockSecureData: Record<string, SecureSignatureData> = {
+  "secure-token-123": {
+    token: "secure-token-123",
+    clientName: "Marie Dubois",
+    agentName: "Wael Hamda",
+    documentType: "Résiliation Assurance Auto",
+    expiresAt: "2024-08-25T23:59:59",
+    status: "pending",
+    documents: [
+      {
+        id: "doc1",
+        name: "Lettre de résiliation - Assurance Auto",
+        type: "pdf",
+        url: "/documents/resiliation-auto.pdf"
+      }
+    ],
+    uploadedFiles: [],
+  },
+  "demo-signature-token": {
+    token: "demo-signature-token",
+    clientName: "Client Démo",
+    agentName: "Agent Démo",
+    documentType: "Résiliation Assurance Habitation",
+    expiresAt: "2024-12-31T23:59:59",
+    status: "pending",
+    documents: [
+      {
+        id: "doc1",
+        name: "Lettre de résiliation - Assurance Habitation",
+        type: "pdf",
+        url: "/documents/resiliation-habitation.pdf"
+      }
+    ],
+    uploadedFiles: [],
+  }
 }
 
 export default function SecureSignaturePage() {
-  const params = useParams();
-  const token = params.token as string;
-  const [caseData, setCaseData] = useState<CaseData | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [signature, setSignature] = useState<string>('');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const params = useParams()
+  const token = params.token as string
+  const [sessionData, setSessionData] = useState<SecureSignatureData | null>(null)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function loadCaseData() {
-      try {
-        const response = await fetch(`/api/client/finalize-case?token=${token}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          setCaseData(data.case);
-          // Déterminer l'étape basée sur le statut
-          switch (data.case.status) {
-            case 'email_sent':
-            case 'documents_uploaded':
-              setCurrentStep(1);
-              break;
-            case 'pending_signature':
-              setCurrentStep(2);
-              break;
-            case 'signed':
-              setCurrentStep(3);
-              break;
-            default:
-              setCurrentStep(1);
-          }
+    // Simulate loading secure session data
+    setTimeout(() => {
+      const data = mockSecureData[token]
+      if (data) {
+        setSessionData(data)
+        // Determine current step based on status
+        switch (data.status) {
+          case "pending":
+            setCurrentStep(1)
+            break
+          case "documents_uploaded":
+            setCurrentStep(2)
+            break
+          case "ready_to_sign":
+            setCurrentStep(3)
+            break
+          case "signed":
+            setCurrentStep(4)
+            break
         }
-      } catch (error) {
-        console.error('Erreur chargement dossier:', error);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false)
+    }, 1000)
+  }, [token])
+
+  const handleFileUpload = (files: { id: string; name: string; type: string; url: string }[]) => {
+    if (!sessionData) return
+
+    const newUploadedFiles = files.map(file => ({
+      id: file.id,
+      name: file.name,
+      type: file.name.toLowerCase().includes('recto') ? 'id_front' : 
+            file.name.toLowerCase().includes('verso') ? 'id_back' : 'additional' as const,
+      url: file.url
+    }))
+
+    const updatedData = {
+      ...sessionData,
+      uploadedFiles: [...sessionData.uploadedFiles, ...newUploadedFiles],
+      status: newUploadedFiles.length >= 2 ? "ready_to_sign" : "documents_uploaded" as const
     }
 
-    loadCaseData();
-  }, [token]);
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    setSessionData(updatedData)
     
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-    const canvas = canvasRef.current;
-    if (canvas) {
-      setSignature(canvas.toDataURL());
+    if (updatedData.status === "ready_to_sign") {
+      setCurrentStep(3)
+    } else {
+      setCurrentStep(2)
     }
-  };
+  }
 
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setSignature('');
-  };
+  const handleSignatureComplete = (signatureData: { signature: string; timestamp: string }) => {
+    if (!sessionData) return
 
-  const handleSignDocument = async () => {
-    if (!signature || !caseData) {
-      alert('Veuillez signer le document avant de continuer');
-      return;
+    const updatedData = {
+      ...sessionData,
+      signatureData,
+      status: "signed" as const
     }
 
-    try {
-      const response = await fetch('/api/client/save-signature', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token: token,
-          signature: signature,
-          caseId: caseData.id
-        }),
-      });
+    setSessionData(updatedData)
+    setCurrentStep(4)
+  }
 
-      const result = await response.json();
-      
-      if (result.success) {
-        setCurrentStep(3);
-        alert('✅ Document signé avec succès !');
-      } else {
-        alert('❌ Erreur lors de la signature: ' + result.error);
-      }
-    } catch (error) {
-      console.error('Erreur signature:', error);
-      alert('❌ Erreur lors de la signature');
-    }
-  };
+  const getStepStatus = (step: number) => {
+    if (step < currentStep) return "complete"
+    if (step === currentStep) return "current"
+    return "pending"
+  }
+
+  const isExpired = sessionData && new Date() > new Date(sessionData.expiresAt)
 
   if (isLoading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f8fafc',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '50px', 
-            height: '50px', 
-            border: '4px solid #e2e8f0',
-            borderTop: '4px solid #3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
-          <p style={{ color: '#6b7280', fontSize: '16px' }}>
-            🔒 Chargement de votre session sécurisée...
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement de votre session sécurisée...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  if (!caseData) {
+  if (!sessionData) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f8fafc',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        padding: '20px'
-      }}>
-        <div style={{ 
-          maxWidth: '400px', 
-          width: '100%',
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '40px',
-          textAlign: 'center',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
-          <h2 style={{ margin: '0 0 15px 0', fontSize: '24px', color: '#dc2626' }}>
-            Session Invalide
-          </h2>
-          <p style={{ margin: '0 0 20px 0', color: '#6b7280' }}>
-            Le lien de signature que vous avez utilisé n'est pas valide ou a expiré.
-          </p>
-          <p style={{ margin: '0', fontSize: '14px', color: '#9ca3af' }}>
-            Veuillez contacter votre conseiller pour obtenir un nouveau lien.
-          </p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Session Invalide</h2>
+            <p className="text-gray-600 mb-4">
+              Le lien de signature que vous avez utilisé n'est pas valide ou a expiré.
+            </p>
+            <p className="text-sm text-gray-500">
+              Veuillez contacter votre conseiller pour obtenir un nouveau lien.
+            </p>
+          </CardContent>
+        </Card>
       </div>
-    );
+    )
+  }
+
+  if (isExpired) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 text-center">
+            <Clock className="h-12 w-12 text-orange-600 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Session Expirée</h2>
+            <p className="text-gray-600 mb-4">
+              Votre lien de signature a expiré le {new Date(sessionData.expiresAt).toLocaleDateString('fr-CH')}.
+            </p>
+            <p className="text-sm text-gray-500">
+              Veuillez contacter votre conseiller pour obtenir un nouveau lien.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#f8fafc',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      {/* Header sécurisé */}
-      <div style={{ 
-        backgroundColor: 'white', 
-        borderBottom: '1px solid #e2e8f0',
-        padding: '20px 0'
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto', 
-          padding: '0 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
-              color: '#3b82f6' 
-            }}>
-              🔒 eSignPro
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50">
+      {/* Secure Header */}
+      <div className="bg-white shadow-sm border-b border-red-200">
+        <div className="mx-auto max-w-4xl px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Image src="/images/esignpro-logo.png" alt="eSignPro" width={150} height={45} className="h-10 w-auto" />
+              <div className="border-l border-gray-300 pl-4">
+                <h1 className="text-xl font-light text-gray-800 flex items-center">
+                  <Shield className="h-5 w-5 mr-2 text-red-600" />
+                  Signature Électronique Sécurisée
+                </h1>
+                <p className="text-sm text-gray-600">Session protégée par chiffrement SSL</p>
+              </div>
             </div>
-            <div style={{ 
-              padding: '4px 12px', 
-              backgroundColor: '#dcfce7', 
-              color: '#166534',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
-              ✅ SESSION SÉCURISÉE
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 'bold', color: '#1f2937' }}>
-              {caseData.client_name}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              Dossier: {caseData.case_number}
+            <div className="flex items-center space-x-3">
+              <Badge className="bg-green-100 text-green-800">
+                <Lock className="h-3 w-3 mr-1" />
+                Sécurisé
+              </Badge>
+              <div className="text-right text-sm">
+                <p className="font-medium text-gray-900">{sessionData.clientName}</p>
+                <p className="text-gray-600">Expire: {new Date(sessionData.expiresAt).toLocaleDateString('fr-CH')}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ 
-        maxWidth: '800px', 
-        margin: '0 auto', 
-        padding: '40px 20px'
-      }}>
-        {/* Barre de progression */}
-        <div style={{ 
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '30px',
-          marginBottom: '30px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-        }}>
-          <h3 style={{ 
-            margin: '0 0 20px 0', 
-            fontSize: '20px', 
-            color: '#1f2937' 
-          }}>
-            📋 Processus de Signature Électronique
-          </h3>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            {[
-              { step: 1, title: 'Vérification', icon: '🔍' },
-              { step: 2, title: 'Signature', icon: '✍️' },
-              { step: 3, title: 'Terminé', icon: '✅' }
-            ].map(({ step, title, icon }) => (
-              <div key={step} style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                flex: 1 
-              }}>
-                <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '50%',
-                  backgroundColor: step <= currentStep ? '#10b981' : '#e5e7eb',
-                  color: step <= currentStep ? 'white' : '#9ca3af',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 'bold'
-                }}>
-                  {step <= currentStep ? '✓' : step}
-                </div>
-                <div style={{ marginLeft: '12px', flex: 1 }}>
-                  <div style={{ 
-                    fontWeight: 'bold', 
-                    color: step <= currentStep ? '#10b981' : '#9ca3af'
-                  }}>
-                    {title}
-                  </div>
-                  {step < 3 && (
-                    <div style={{ 
-                      height: '2px', 
-                      backgroundColor: step < currentStep ? '#10b981' : '#e5e7eb',
-                      marginTop: '8px'
-                    }}></div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Contenu des étapes */}
-        {currentStep === 1 && (
-          <div style={{ 
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '40px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h2 style={{ 
-              margin: '0 0 20px 0', 
-              fontSize: '24px', 
-              color: '#1f2937',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              🔍 Vérification du Dossier
-            </h2>
+      <div className="mx-auto max-w-4xl p-6">
+        {/* Progress Steps */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Processus de Signature</h3>
+              <Badge variant="outline">{sessionData.documentType}</Badge>
+            </div>
             
-            <div style={{ 
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '8px',
-              padding: '20px',
-              marginBottom: '30px'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px',
-                marginBottom: '10px'
-              }}>
-                <span style={{ fontSize: '20px' }}>✅</span>
-                <strong style={{ color: '#166534' }}>
-                  Session sécurisée vérifiée
-                </strong>
-              </div>
-              <p style={{ margin: '0', color: '#166534' }}>
-                Votre lien de signature est valide et sécurisé.
-              </p>
+            <div className="flex items-center space-x-4">
+              {[
+                { step: 1, title: "Vérification", icon: Shield },
+                { step: 2, title: "Documents", icon: Upload },
+                { step: 3, title: "Signature", icon: PenTool },
+                { step: 4, title: "Terminé", icon: CheckCircle }
+              ].map(({ step, title, icon: Icon }) => (
+                <div key={step} className="flex items-center flex-1">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    getStepStatus(step) === "complete" ? "bg-green-600 border-green-600 text-white" :
+                    getStepStatus(step) === "current" ? "bg-red-600 border-red-600 text-white" :
+                    "bg-gray-100 border-gray-300 text-gray-400"
+                  }`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className={`text-sm font-medium ${
+                      getStepStatus(step) === "complete" ? "text-green-600" :
+                      getStepStatus(step) === "current" ? "text-red-600" :
+                      "text-gray-400"
+                    }`}>
+                      {title}
+                    </p>
+                    {step < 4 && (
+                      <div className={`h-1 mt-2 rounded-full ${
+                        getStepStatus(step + 1) === "complete" || getStepStatus(step + 1) === "current" ? "bg-red-200" : "bg-gray-200"
+                      }`} />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
+          </CardContent>
+        </Card>
 
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-              gap: '20px',
-              marginBottom: '30px'
-            }}>
-              <div>
-                <strong>👤 Client:</strong><br />
-                {caseData.client_name}
+        {/* Step Content */}
+        {currentStep === 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Shield className="mr-2 h-5 w-5" />
+                Vérification de Sécurité
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  <strong>Session sécurisée vérifiée</strong> - Votre lien de signature est valide et sécurisé.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="space-y-3">
+                <p><strong>Client:</strong> {sessionData.clientName}</p>
+                <p><strong>Conseiller:</strong> {sessionData.agentName}</p>
+                <p><strong>Type de document:</strong> {sessionData.documentType}</p>
+                <p><strong>Expire le:</strong> {new Date(sessionData.expiresAt).toLocaleDateString('fr-CH')}</p>
               </div>
-              <div>
-                <strong>📄 Dossier:</strong><br />
-                {caseData.case_number}
-              </div>
-              <div>
-                <strong>🏢 Assurance:</strong><br />
-                {caseData.insurance_company}
-              </div>
-              <div>
-                <strong>📋 Statut:</strong><br />
-                <span style={{ 
-                  color: '#f59e0b',
-                  fontWeight: 'bold'
-                }}>
-                  {caseData.status === 'documents_uploaded' ? 'Prêt pour signature' : 'En attente'}
-                </span>
-              </div>
-            </div>
 
-            <button
-              onClick={() => setCurrentStep(2)}
-              style={{
-                width: '100%',
-                padding: '15px 30px',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-            >
-              ✍️ Procéder à la signature
-            </button>
-          </div>
+              <Button 
+                onClick={() => setCurrentStep(2)} 
+                className="w-full bg-red-600 hover:bg-red-700"
+              >
+                Continuer vers l'upload des documents
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {currentStep === 2 && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '40px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h2 style={{
-              margin: '0 0 20px 0',
-              fontSize: '24px',
-              color: '#1f2937',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              ✍️ Signature Électronique
-            </h2>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Upload className="mr-2 h-5 w-5" />
+                  Upload des Documents d'Identité
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FileUploader
+                  onFilesUploaded={handleFileUpload}
+                  acceptedTypes={["image/jpeg", "image/png", "application/pdf"]}
+                  maxFiles={3}
+                  instructions="Veuillez télécharger votre pièce d'identité (recto et verso séparément)"
+                />
+              </CardContent>
+            </Card>
 
-            <p style={{
-              margin: '0 0 20px 0',
-              color: '#6b7280'
-            }}>
-              Veuillez signer dans la zone ci-dessous avec votre souris ou votre doigt sur mobile.
-            </p>
-
-            <div style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '8px',
-              padding: '20px',
-              textAlign: 'center',
-              marginBottom: '20px'
-            }}>
-              <canvas
-                ref={canvasRef}
-                width={600}
-                height={200}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '4px',
-                  cursor: 'crosshair',
-                  maxWidth: '100%',
-                  backgroundColor: 'white'
-                }}
-              />
-              <p style={{
-                margin: '10px 0 0 0',
-                fontSize: '14px',
-                color: '#6b7280'
-              }}>
-                Signez ici
-              </p>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '15px',
-              justifyContent: 'center'
-            }}>
-              <button
-                onClick={clearSignature}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                🗑️ Effacer
-              </button>
-              <button
-                onClick={handleSignDocument}
-                disabled={!signature}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: signature ? '#10b981' : '#d1d5db',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  cursor: signature ? 'pointer' : 'not-allowed'
-                }}
-              >
-                ✅ Valider la signature
-              </button>
-            </div>
+            {sessionData.uploadedFiles.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Documents Téléchargés</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sessionData.uploadedFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-5 w-5 text-blue-600" />
+                          <span className="font-medium">{file.name}</span>
+                        </div>
+                        <Badge className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Téléchargé
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
         {currentStep === 3 && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '40px',
-            textAlign: 'center',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎉</div>
-            <h2 style={{
-              margin: '0 0 15px 0',
-              fontSize: '28px',
-              color: '#10b981'
-            }}>
-              Signature Terminée !
-            </h2>
-            <p style={{
-              margin: '0 0 30px 0',
-              color: '#6b7280',
-              fontSize: '16px'
-            }}>
-              Votre document a été signé avec succès.
-            </p>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="mr-2 h-5 w-5" />
+                  Document à Signer
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DocumentViewer 
+                  documentUrl={sessionData.documents[0]?.url} 
+                  documentName={sessionData.documents[0]?.name}
+                />
+              </CardContent>
+            </Card>
 
-            <div style={{
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '8px',
-              padding: '20px',
-              marginBottom: '30px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                marginBottom: '10px'
-              }}>
-                <span style={{ fontSize: '20px' }}>✅</span>
-                <strong style={{ color: '#166534' }}>
-                  Dossier finalisé
-                </strong>
-              </div>
-              <p style={{ margin: '0', color: '#166534' }}>
-                Votre dossier sera automatiquement transmis à votre assureur dans les prochaines heures.
-              </p>
-            </div>
-
-            <p style={{
-              margin: '0',
-              fontSize: '14px',
-              color: '#9ca3af'
-            }}>
-              Vous recevrez une confirmation par email une fois le traitement terminé.
-            </p>
+            <DigitalSignature
+              clientName={sessionData.clientName}
+              onSignatureComplete={handleSignatureComplete}
+              signatureData={sessionData.signatureData}
+            />
           </div>
         )}
-      </div>
 
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+        {currentStep === 4 && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold mb-4">Signature Terminée !</h2>
+              <p className="text-gray-600 mb-6">
+                Votre document a été signé avec succès le {sessionData.signatureData && new Date(sessionData.signatureData.timestamp).toLocaleString('fr-CH')}.
+              </p>
+              <Alert className="border-green-200 bg-green-50 mb-6">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  Votre dossier sera automatiquement transmis à votre assureur dans les prochaines heures.
+                </AlertDescription>
+              </Alert>
+              <p className="text-sm text-gray-500">
+                Vous recevrez une confirmation par email une fois le traitement terminé.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
-  );
+  )
 }

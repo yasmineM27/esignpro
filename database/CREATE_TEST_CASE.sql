@@ -219,11 +219,11 @@ WHERE token = 'SECURE_1758909118460_202mix6qtsh'
 ORDER BY uploaddate DESC;
 -- Vérifier les emails envoyés
 SELECT '📧 EMAILS ENVOYÉS' as title,
-    el.recipient_email,
-    el.subject,
-    el.email_type,
-    el.status,
-    el.sent_at
+    recipient_email,
+    subject,
+    email_type,
+    status,
+    sent_at
 FROM public.email_logs el
     JOIN public.insurance_cases ic ON el.case_id = ic.id
 WHERE ic.secure_token = 'SECURE_1758909118460_202mix6qtsh';

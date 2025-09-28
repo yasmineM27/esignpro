@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server"
 import { generateClientEmailTemplate } from "@/lib/email-templates"
-import { generateSecureToken } from "@/lib/supabase"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -8,7 +7,7 @@ export async function GET(request: NextRequest) {
   const clientId = searchParams.get("clientId") || crypto.randomUUID()
 
   // Generate a secure token for the client portal
-  const secureToken = generateSecureToken()
+  const secureToken = crypto.randomUUID().replace(/-/g, '')
   const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client/${secureToken}`
 
   const template = generateClientEmailTemplate({

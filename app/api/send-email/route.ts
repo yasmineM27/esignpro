@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { emailService } from "@/lib/email"
-import { generateSecureToken } from "@/lib/supabase"
 
 interface EmailData {
   clientEmail: string
@@ -14,7 +13,7 @@ export async function POST(request: NextRequest) {
     const { clientEmail, clientName, clientId, documentContent }: EmailData = await request.json()
 
     // Generate a secure token for the client portal
-    const secureToken = generateSecureToken()
+    const secureToken = `SECURE_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
 
     // Generate the secure client portal link
     const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client/${secureToken}`

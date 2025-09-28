@@ -304,8 +304,5 @@ export const createAuditLog = async (logData: Partial<AuditLog>) => {
 }
 
 export const generateSecureToken = (): string => {
-  // Use the same format as the database function for consistency
-  const timestamp = Math.floor(Date.now() / 1000) // Unix timestamp
-  const randomPart = Math.random().toString(36).substring(2, 17).toLowerCase()
-  return `SECURE_${timestamp}_${randomPart}`
+  return crypto.randomUUID().replace(/-/g, '')
 }
