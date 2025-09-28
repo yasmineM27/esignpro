@@ -7,13 +7,14 @@ import { useState } from "react"
 
 interface DocumentPreviewProps {
   content: string
-  clientId: string
+  clientId: string // This can be either a UUID or secure token
 }
 
 export function DocumentPreview({ content, clientId }: DocumentPreviewProps) {
   const [downloadFormat, setDownloadFormat] = useState<"txt" | "html" | "pdf">("txt")
+  // Use clientId as token for portal link - it will be the secure token if available
   const portalLink = `${window.location.origin}/client-portal/${clientId}`
-  const emailPreviewLink = `${window.location.origin}/api/email-preview?clientName=Client&clientId=${clientId}`
+  const emailPreviewLink = `${window.location.origin}/api/email-preview?clientName=Client&clientId=${clientId}&token=${clientId}`
 
   const downloadDocument = async (format: "txt" | "html" | "pdf" = "txt") => {
     let blob: Blob

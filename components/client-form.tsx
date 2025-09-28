@@ -86,6 +86,7 @@ export function ClientForm() {
   const [isDownloadingWord, setIsDownloadingWord] = useState(false)
   const [generatedDocument, setGeneratedDocument] = useState<string | null>(null)
   const [clientId, setClientId] = useState<string | null>(null)
+  const [secureToken, setSecureToken] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
 
   // Fonction pour calculer les champs legacy automatiquement
@@ -215,6 +216,9 @@ export function ClientForm() {
         throw new Error(emailResult.message)
       }
 
+      // Store the secure token for the portal link
+      setSecureToken(emailResult.secureToken)
+
       const actualRecipient = process.env.NODE_ENV === 'development' ? (process.env.TEST_CLIENT_EMAIL || 'yasminemassaoudi27@gmail.com') : clientData.email
 
       toast({
@@ -240,18 +244,26 @@ export function ClientForm() {
 
   const resetForm = () => {
     setClientData({
-      nomPrenom: "",
+      nom: "",
+      prenom: "",
+      dateNaissance: "",
+      numeroPolice: "",
+      email: "",
       adresse: "",
-      npaVille: "",
+      npa: "",
+      ville: "",
+      typeFormulaire: 'resiliation',
       destinataire: "",
-      lieuDate: "",
-      personnes: [{ nom: "", prenom: "", dateNaissance: "", numeroPolice: "" }],
+      lieuDate: new Date().toLocaleDateString('fr-CH'),
+      personnes: [],
       dateLamal: "",
       dateLCA: "",
-      email: "",
+      nomPrenom: "",
+      npaVille: "",
     })
     setGeneratedDocument(null)
     setClientId(null)
+    setSecureToken(null)
     setShowPreview(false)
   }
 
@@ -271,7 +283,7 @@ export function ClientForm() {
           </div>
         </div>
 
-        <DocumentPreview content={generatedDocument} clientId={clientId || ""} />
+        <DocumentPreview content={generatedDocument} clientId={secureToken || clientId || ""} />
       </div>
     )
   }
