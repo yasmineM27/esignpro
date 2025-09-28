@@ -11,10 +11,10 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { AgentClientsDynamic } from "@/components/agent-clients-dynamic"
 import { AgentPendingDynamic } from "@/components/agent-pending-dynamic"
-import { AgentCompleted } from "@/components/agent-completed"
-import { DocumentArchive } from "@/components/document-archive"
+import { AgentCompletedDynamic } from "@/components/agent-completed-dynamic"
+import { AgentArchiveDynamic } from "@/components/agent-archive-dynamic"
 import { AgentAnalyticsDynamic } from "@/components/agent-analytics-dynamic"
-import { AgentSettings } from "@/components/agent-settings"
+import { AgentSettingsDynamic } from "@/components/agent-settings-dynamic"
 
 export default function AgentDashboard() {
   const [activeTab, setActiveTab] = useState("new-case")
@@ -40,13 +40,13 @@ export default function AgentDashboard() {
       case "pending":
         return <AgentPendingDynamic />
       case "completed":
-        return <AgentCompleted />
+        return <AgentCompletedDynamic />
       case "archive":
-        return <DocumentArchive />
+        return <AgentArchiveDynamic />
       case "analytics":
         return <AgentAnalyticsDynamic />
       case "settings":
-        return <AgentSettings />
+        return <AgentSettingsDynamic />
       default:
         return null
     }

@@ -78,8 +78,12 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Formater les données pour l'interface
-    let clients = cases?.map(caseItem => ({
+    // Formater les données pour l'interface et éliminer les doublons par client
+    const clientsMap = new Map();
+    cases?.forEach(caseItem => {
+      const clientKey = caseItem.clients.id; // Utiliser seulement l'ID client pour éviter les doublons
+      if (!clientsMap.has(clientKey)) {
+        clientsMap.set(clientKey, {
       id: caseItem.clients.id,
       userId: caseItem.clients.users.id,
       firstName: caseItem.clients.users.first_name,
@@ -119,10 +123,14 @@ export async function GET(request: NextRequest) {
       // URLs utiles
       portalUrl: `https://esignpro.ch/client-portal/${caseItem.secure_token}`,
       
-      // Temps écoulé
-      daysSinceCreated: Math.floor((new Date().getTime() - new Date(caseItem.created_at).getTime()) / (1000 * 60 * 60 * 24)),
-      daysSinceUpdated: Math.floor((new Date().getTime() - new Date(caseItem.updated_at).getTime()) / (1000 * 60 * 60 * 24))
-    })) || [];
+          // Temps écoulé
+          daysSinceCreated: Math.floor((new Date().getTime() - new Date(caseItem.created_at).getTime()) / (1000 * 60 * 60 * 24)),
+          daysSinceUpdated: Math.floor((new Date().getTime() - new Date(caseItem.updated_at).getTime()) / (1000 * 60 * 60 * 24))
+        });
+      }
+    });
+
+    let clients = Array.from(clientsMap.values());
 
     // Filtrer par recherche si spécifié
     if (search) {

@@ -21,8 +21,6 @@ export async function GET(request: NextRequest) {
         is_valid,
         ip_address,
         user_agent,
-        validated_at,
-        validated_by,
         insurance_cases!inner(
           id,
           case_number,
@@ -64,10 +62,8 @@ export async function GET(request: NextRequest) {
       isValid: sig.is_valid,
       ipAddress: sig.ip_address,
       userAgent: sig.user_agent,
-      validationStatus: sig.validation_status,
-      validatedAt: sig.validated_at,
-      validatedBy: sig.validated_by,
-      validationNotes: sig.validation_notes,
+      validatedAt: null,
+      validatedBy: null,
       case: {
         id: sig.insurance_cases.id,
         caseNumber: sig.insurance_cases.case_number,

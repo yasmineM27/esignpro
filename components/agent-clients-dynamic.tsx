@@ -289,8 +289,8 @@ export function AgentClientsDynamic() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredClients.map((client) => (
-                <Card key={client.id} className={`border-l-4 ${getStatusColor(client.overallStatus)} hover:shadow-md transition-shadow`}>
+              {filteredClients.map((client, index) => (
+                <Card key={`${client.caseId}-${client.id}-${index}`} className={`border-l-4 ${getStatusColor(client.overallStatus)} hover:shadow-md transition-shadow`}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
