@@ -104,6 +104,74 @@ export class EmailService {
       text: template.text,
     })
   }
+
+  async sendClientInvitation(insuranceCase: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('[v0] sendClientInvitation called with:', {
+        id: insuranceCase.id,
+        client_id: insuranceCase.client_id,
+        secure_token: insuranceCase.secure_token,
+        case_number: insuranceCase.case_number
+      })
+
+      // Récupérer les données du client depuis la base de données
+      const { createClient } = require('@supabase/supabase-js')
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      )
+
+      // Récupérer les informations du client
+      console.log('[v0] Fetching client data for client_id:', insuranceCase.client_id)
+      const { data: clientData, error: clientError } = await supabaseAdmin
+        .from('clients')
+        .select(`
+          id,
+          user_id,
+          users!inner (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('id', insuranceCase.client_id)
+        .single()
+
+      console.log('[v0] Client query result:', { clientData, clientError })
+
+      if (clientError || !clientData) {
+        console.log('[v0] Client not found or error:', clientError)
+        return { success: false, error: `Client non trouvé: ${clientError?.message || 'Données manquantes'}` }
+      }
+
+      const clientName = `${clientData.users.first_name} ${clientData.users.last_name}`
+      const clientEmail = clientData.users.email
+      const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client-portal/${insuranceCase.secure_token}`
+
+      const template = generateClientEmailTemplate({
+        clientName,
+        portalLink,
+        documentContent: `Dossier d'assurance ${insuranceCase.case_number} - ${insuranceCase.insurance_company}`
+      })
+
+      const emailSent = await this.sendEmail({
+        to: clientEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      })
+
+      if (emailSent) {
+        return { success: true }
+      } else {
+        return { success: false, error: 'Échec de l\'envoi de l\'email' }
+      }
+
+    } catch (error) {
+      console.error('Error in sendClientInvitation:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' }
+    }
+  }
 }
 
 export const emailService = new EmailService()

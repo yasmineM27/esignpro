@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { emailService } from "@/lib/email"
+import { emailService } from "@/lib/email-service"
 import { generateSecureToken, supabaseAdmin } from "@/lib/supabase"
 
 interface EmailData {
@@ -148,11 +148,17 @@ export async function POST(request: NextRequest) {
     // Generate the secure client portal link
     const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client-portal/${secureToken}`
 
-    // Send email to client using the new email service
-    const clientEmailSent = await emailService.sendClientInvitation(insuranceCase)
+    // Send email to client using direct data (bypass database lookup)
+    const clientEmailSent = await emailService.sendClientNotification({
+      clientEmail,
+      clientName,
+      clientId: formClientId,
+      portalLink,
+      documentContent: `Dossier d'assurance ${insuranceCase.case_number} - ${insuranceCase.insurance_company}`
+    })
 
-    if (!clientEmailSent.success) {
-      throw new Error(clientEmailSent.error || "Échec de l'envoi de l'email au client")
+    if (!clientEmailSent) {
+      throw new Error("Échec de l'envoi de l'email au client")
     }
 
     return NextResponse.json({
