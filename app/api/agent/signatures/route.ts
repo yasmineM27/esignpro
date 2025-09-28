@@ -5,13 +5,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'signed'; // signed, validated, rejected
+    const caseId = searchParams.get('caseId'); // Pour rechercher par dossier spécifique
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    console.log('🔍 Récupération signatures agent:', { status, limit, offset });
+    console.log('🔍 Récupération signatures agent:', { status, caseId, limit, offset });
 
     // Récupérer les signatures avec les données des dossiers
-    const { data: signatures, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('signatures')
       .select(`
         id,
@@ -42,9 +43,18 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .not('signed_at', 'is', null)
+      .not('signed_at', 'is', null);
+
+    // Filtrer par dossier spécifique si demandé
+    if (caseId) {
+      query = query.eq('case_id', caseId);
+    }
+
+    query = query
       .order('signed_at', { ascending: false })
       .range(offset, offset + limit - 1);
+
+    const { data: signatures, error } = await query;
 
     if (error) {
       console.error('❌ Erreur récupération signatures:', error);

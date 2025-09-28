@@ -95,37 +95,38 @@ export function AgentCompletedDynamic() {
 
       if (data.success) {
         const formattedCases = data.signatures.map((sig: any) => {
-          const createdDate = new Date(sig.insurance_cases.created_at)
-          const completedDate = new Date(sig.signed_at)
+          // Utiliser les données formatées de l'API
+          const createdDate = new Date(sig.case?.createdAt || sig.signedAt)
+          const completedDate = new Date(sig.signedAt)
           const daysToComplete = Math.floor((completedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
-          
+
           return {
             id: sig.id,
-            caseNumber: sig.insurance_cases.case_number,
-            status: sig.insurance_cases.status,
-            secureToken: sig.insurance_cases.secure_token,
+            caseNumber: sig.case?.caseNumber || 'N/A',
+            status: sig.case?.status || 'completed',
+            secureToken: sig.case?.secureToken || '',
             client: {
-              id: sig.insurance_cases.clients.id,
-              firstName: sig.insurance_cases.clients.users.first_name,
-              lastName: sig.insurance_cases.clients.users.last_name,
-              fullName: `${sig.insurance_cases.clients.users.first_name} ${sig.insurance_cases.clients.users.last_name}`,
-              email: sig.insurance_cases.clients.users.email,
-              phone: sig.insurance_cases.clients.users.phone
+              id: sig.case?.client?.id || '',
+              firstName: sig.case?.client?.firstName || '',
+              lastName: sig.case?.client?.lastName || '',
+              fullName: `${sig.case?.client?.firstName || ''} ${sig.case?.client?.lastName || ''}`.trim(),
+              email: sig.case?.client?.email || '',
+              phone: sig.case?.client?.phone || ''
             },
-            insuranceCompany: sig.insurance_cases.insurance_company,
-            policyType: sig.insurance_cases.policy_type,
-            policyNumber: sig.insurance_cases.policy_number,
-            createdAt: sig.insurance_cases.created_at,
-            completedAt: sig.signed_at,
+            insuranceCompany: sig.case?.insuranceCompany || '',
+            policyType: sig.case?.insuranceType || '',
+            policyNumber: sig.case?.policyNumber || '',
+            createdAt: sig.case?.createdAt || sig.signedAt,
+            completedAt: sig.signedAt,
             signature: {
               id: sig.id,
-              signedAt: sig.signed_at,
-              signatureData: sig.signature_data,
-              isValid: sig.is_valid,
-              validatedAt: sig.validated_at,
-              validatedBy: sig.validated_by
+              signedAt: sig.signedAt,
+              signatureData: sig.signatureData,
+              isValid: sig.isValid,
+              validatedAt: sig.validatedAt,
+              validatedBy: sig.validatedBy
             },
-            portalUrl: `https://esignpro.ch/client-portal/${sig.insurance_cases.secure_token}`,
+            portalUrl: `https://esignpro.ch/client-portal/${sig.case?.secureToken}`,
             daysToComplete: daysToComplete,
             completionScore: daysToComplete <= 1 ? 100 : daysToComplete <= 3 ? 90 : daysToComplete <= 7 ? 80 : 70
           }

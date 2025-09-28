@@ -19,7 +19,10 @@ import {
   Building,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Signature,
+  FileDown
 } from "lucide-react"
 
 interface Client {
@@ -72,6 +75,7 @@ export function AgentClientsDynamic() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedSignature, setSelectedSignature] = useState<any>(null)
   const [sortBy, setSortBy] = useState("recent")
 
   useEffect(() => {
@@ -116,6 +120,56 @@ export function AgentClientsDynamic() {
 
   const handleSearch = () => {
     loadClients()
+  }
+
+  const viewSignature = async (client: Client) => {
+    try {
+      // Récupérer la signature du client
+      const response = await fetch(`/api/agent/signatures?caseId=${client.caseId}`)
+      const data = await response.json()
+
+      if (data.success && data.signatures.length > 0) {
+        setSelectedSignature(data.signatures[0])
+      } else {
+        alert('Aucune signature trouvée pour ce client')
+      }
+    } catch (error) {
+      console.error('Erreur récupération signature:', error)
+      alert('Erreur lors de la récupération de la signature')
+    }
+  }
+
+  const downloadDocuments = async (client: Client) => {
+    try {
+      // Créer un ZIP avec tous les documents du client
+      const response = await fetch(`/api/agent/download-documents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          caseId: client.caseId,
+          clientId: client.id
+        })
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `documents-${client.fullName.replace(/\s+/g, '-')}-${client.caseNumber}.zip`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        alert('Erreur lors du téléchargement des documents')
+      }
+    } catch (error) {
+      console.error('Erreur téléchargement documents:', error)
+      alert('Erreur lors du téléchargement des documents')
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -351,15 +405,26 @@ export function AgentClientsDynamic() {
                           Voir portail
                         </Button>
                         {client.hasSignature && (
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
-                            className="text-green-600 border-green-200 hover:bg-green-50"
+                            onClick={() => viewSignature(client)}
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
                           >
-                            <FileText className="h-4 w-4 mr-2" />
+                            <Signature className="h-4 w-4 mr-2" />
                             Voir signature
                           </Button>
                         )}
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadDocuments(client)}
+                          className="text-green-600 border-green-200 hover:bg-green-50"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Télécharger docs
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -369,6 +434,36 @@ export function AgentClientsDynamic() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal pour voir la signature */}
+      {selectedSignature && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedSignature(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Signature Client</h3>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedSignature(null)}>
+                ✕
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <img
+                  src={selectedSignature.signatureData}
+                  alt="Signature"
+                  className="w-full h-32 object-contain border rounded"
+                />
+              </div>
+              <div className="text-sm text-gray-600">
+                <p><strong>Signé le:</strong> {new Date(selectedSignature.signedAt).toLocaleString('fr-FR')}</p>
+                <p><strong>Statut:</strong> {selectedSignature.isValid ? 'Valide' : 'En attente de validation'}</p>
+                {selectedSignature.validatedAt && (
+                  <p><strong>Validé le:</strong> {new Date(selectedSignature.validatedAt).toLocaleString('fr-FR')}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
