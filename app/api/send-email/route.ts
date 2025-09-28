@@ -126,14 +126,14 @@ export async function POST(request: NextRequest) {
         case_number: `FORM-${Date.now()}`,
         client_id: dbClientId,
         agent_id: agentId,
-        insurance_type: 'Résiliation',
         insurance_company: 'Client Form Submission',
         policy_number: 'FORM-SUBMISSION',
-        status: 'pending_documents',
-        title: `Demande de résiliation - ${clientName}`,
-        description: `Document généré automatiquement via formulaire client`,
+        policy_type: 'Résiliation',
+        status: 'email_sent',
         secure_token: secureToken,
-        token_expires_at: expiresAt.toISOString()
+        termination_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        reason_for_termination: `Document généré automatiquement via formulaire client - ${clientName}`,
+        expires_at: expiresAt.toISOString()
       })
       .select()
       .single()
