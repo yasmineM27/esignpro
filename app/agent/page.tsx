@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { AgentClients } from "@/components/agent-clients"
-import { AgentPending } from "@/components/agent-pending"
+import { AgentClientsDynamic } from "@/components/agent-clients-dynamic"
+import { AgentPendingDynamic } from "@/components/agent-pending-dynamic"
 import { AgentCompleted } from "@/components/agent-completed"
 import { DocumentArchive } from "@/components/document-archive"
-import { AgentAnalytics } from "@/components/agent-analytics"
+import { AgentAnalyticsDynamic } from "@/components/agent-analytics-dynamic"
 import { AgentSettings } from "@/components/agent-settings"
 
 export default function AgentDashboard() {
@@ -36,15 +36,15 @@ export default function AgentDashboard() {
           </Card>
         )
       case "clients":
-        return <AgentClients />
+        return <AgentClientsDynamic />
       case "pending":
-        return <AgentPending />
+        return <AgentPendingDynamic />
       case "completed":
         return <AgentCompleted />
       case "archive":
         return <DocumentArchive />
       case "analytics":
-        return <AgentAnalytics />
+        return <AgentAnalyticsDynamic />
       case "settings":
         return <AgentSettings />
       default:

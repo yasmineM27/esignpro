@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { sendEmail } from '@/lib/email-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -111,31 +112,90 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString()
       }]);
 
-    // Créer un log d'email pour notifier la signature
-    await supabaseAdmin
-      .from('email_logs')
-      .insert([{
-        case_id: realCaseId,
-        recipient_email: 'admin@esignpro.ch', // Email de l'admin
-        sender_email: 'noreply@esignpro.ch',
-        subject: `Document signé - Dossier ${caseData.case_number}`,
-        body_html: `
-          <html>
-            <body>
-              <h2>Document signé avec succès</h2>
-              <p><strong>Dossier:</strong> ${caseData.case_number}</p>
-              <p><strong>Client:</strong> ${caseData.clients.users.first_name} ${caseData.clients.users.last_name}</p>
-              <p><strong>Email:</strong> ${caseData.clients.users.email}</p>
-              <p><strong>Date de signature:</strong> ${new Date().toLocaleString('fr-FR')}</p>
-              <p><strong>Statut:</strong> Signé et finalisé</p>
-              <p>Le dossier peut maintenant être transmis à l'assureur.</p>
-            </body>
-          </html>
+    // Envoyer un email de notification à l'agent
+    const agentEmail = 'yasminemassaoudi27@gmail.com';
+    const clientName = `${caseData.clients.users.first_name} ${caseData.clients.users.last_name}`;
+
+    try {
+      const emailResult = await sendEmail({
+        to: agentEmail,
+        subject: `🎉 Nouvelle signature reçue - Dossier ${caseData.case_number}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+            <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #2563eb; margin: 0;">📋 eSignPro</h1>
+                <h2 style="color: #16a34a; margin: 10px 0;">Document signé avec succès !</h2>
+              </div>
+
+              <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #2563eb; margin-bottom: 20px;">
+                <h3 style="color: #1e40af; margin: 0 0 15px 0;">📄 Détails du dossier</h3>
+                <p style="margin: 5px 0;"><strong>Numéro de dossier:</strong> ${caseData.case_number}</p>
+                <p style="margin: 5px 0;"><strong>Client:</strong> ${clientName}</p>
+                <p style="margin: 5px 0;"><strong>Email client:</strong> ${caseData.clients.users.email}</p>
+                <p style="margin: 5px 0;"><strong>Date de signature:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+                <p style="margin: 5px 0;"><strong>Statut:</strong> <span style="color: #16a34a; font-weight: bold;">✅ Signé et finalisé</span></p>
+              </div>
+
+              <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+                <h3 style="color: #92400e; margin: 0 0 15px 0;">⚡ Actions disponibles</h3>
+                <p style="margin: 5px 0;">• Valider la signature dans l'espace agent</p>
+                <p style="margin: 5px 0;">• Générer les documents automatiquement</p>
+                <p style="margin: 5px 0;">• Sélectionner les templates appropriés</p>
+                <p style="margin: 5px 0;">• Finaliser et envoyer au client</p>
+              </div>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://esignpro.ch/agent"
+                   style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                  🚀 Accéder à l'espace agent
+                </a>
+              </div>
+
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
+                <p>Cette notification a été générée automatiquement par eSignPro.</p>
+                <p>Dossier ID: ${realCaseId}</p>
+              </div>
+            </div>
+          </div>
         `,
-        email_type: 'signature_notification',
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }]);
+        text: `
+Nouvelle signature reçue - eSignPro
+
+Dossier: ${caseData.case_number}
+Client: ${clientName}
+Email: ${caseData.clients.users.email}
+Date: ${new Date().toLocaleString('fr-FR')}
+Statut: Signé et finalisé
+
+Accédez à votre espace agent: https://esignpro.ch/agent
+
+Le dossier peut maintenant être traité et les documents générés automatiquement.
+        `
+      });
+
+      console.log('📧 Email de notification envoyé à l\'agent:', emailResult.success ? '✅' : '❌');
+
+      // Créer un log d'email
+      await supabaseAdmin
+        .from('email_logs')
+        .insert([{
+          case_id: realCaseId,
+          recipient_email: agentEmail,
+          sender_email: 'noreply@esignpro.ch',
+          subject: `🎉 Nouvelle signature reçue - Dossier ${caseData.case_number}`,
+          body_html: 'Email de notification agent (voir logs)',
+          email_type: 'agent_signature_notification',
+          status: emailResult.success ? 'sent' : 'failed',
+          sent_at: emailResult.success ? new Date().toISOString() : null,
+          error_message: emailResult.success ? null : emailResult.error,
+          created_at: new Date().toISOString()
+        }]);
+
+    } catch (emailError) {
+      console.error('❌ Erreur envoi email agent:', emailError);
+      // Continue quand même, la signature est sauvegardée
+    }
 
     console.log('✅ Signature sauvegardée avec succès:', signatureData.id);
 
