@@ -30,6 +30,7 @@ interface DocumentData {
 // Fonction pour récupérer les données du dossier
 async function getCaseData(token: string): Promise<CaseData | null> {
   try {
+    console.log('Attempting to fetch case data for token:', token);
     const { supabaseAdmin } = require('@/lib/supabase');
 
     // Récupérer le dossier
@@ -41,8 +42,11 @@ async function getCaseData(token: string): Promise<CaseData | null> {
 
     if (caseError || !caseData) {
       console.error('Erreur récupération dossier:', caseError);
+      console.error('Token not found in database:', token);
       return null;
     }
+
+    console.log('Case data found:', { id: caseData.id, case_number: caseData.case_number, status: caseData.status });
 
     // Récupérer le client
     const { data: clientData, error: clientError } = await supabaseAdmin

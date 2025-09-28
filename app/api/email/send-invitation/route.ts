@@ -31,10 +31,14 @@ export async function POST(request: NextRequest) {
 
     // Generate secure token if not exists
     let secureToken = insuranceCase.secure_token
+    console.log('Current secure_token for case', caseId, ':', secureToken)
+
     if (!secureToken) {
       secureToken = generateSecureToken()
       const expiresAt = new Date()
       expiresAt.setHours(expiresAt.getHours() + parseInt(process.env.SECURE_TOKEN_EXPIRY_HOURS || '168'))
+
+      console.log('Generated new token:', secureToken, 'expires at:', expiresAt.toISOString())
 
       const { error: updateError } = await supabaseAdmin
         .from('insurance_cases')
@@ -46,11 +50,15 @@ export async function POST(request: NextRequest) {
         .eq('id', caseId)
 
       if (updateError) {
+        console.error('Failed to update case with secure token:', updateError)
         return NextResponse.json({ error: 'Failed to update case with secure token' }, { status: 500 })
       }
 
+      console.log('Successfully updated case with token')
       insuranceCase.secure_token = secureToken
       insuranceCase.token_expires_at = expiresAt.toISOString()
+    } else {
+      console.log('Reusing existing token:', secureToken)
     }
 
     // Send invitation email

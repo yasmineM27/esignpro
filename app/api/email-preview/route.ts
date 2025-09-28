@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   // Generate a secure token for the client portal
   const secureToken = generateSecureToken()
-  const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client/${secureToken}`
+  const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client-portal/${secureToken}`
 
   const template = generateClientEmailTemplate({
     clientName,
