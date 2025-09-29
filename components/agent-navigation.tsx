@@ -35,15 +35,6 @@ export function AgentNavigation({ activeTab, onTabChange }: AgentNavigationProps
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  // Charger les statistiques pour les badges
-  useEffect(() => {
-    loadNavigationStats()
-
-    // Recharger toutes les 30 secondes
-    const interval = setInterval(loadNavigationStats, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
   const loadNavigationStats = async () => {
     try {
       setIsLoading(true)
@@ -73,6 +64,15 @@ export function AgentNavigation({ activeTab, onTabChange }: AgentNavigationProps
       setIsLoading(false)
     }
   }
+
+  // Charger les statistiques pour les badges
+  useEffect(() => {
+    loadNavigationStats()
+
+    // Recharger toutes les 30 secondes
+    const interval = setInterval(loadNavigationStats, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const navigationItems = [
     {

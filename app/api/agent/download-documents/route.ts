@@ -2,19 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import JSZip from 'jszip';
 
-export async function GET(request: NextRequest) {
+async function handleDownload(caseId: string, clientId: string | null) {
   try {
-    const { searchParams } = new URL(request.url);
-    const caseId = searchParams.get('caseId');
-    const clientId = searchParams.get('clientId');
-
-    if (!caseId) {
-      return NextResponse.json({
-        success: false,
-        error: 'caseId requis'
-      }, { status: 400 });
-    }
-
     console.log('📦 Téléchargement documents:', { caseId, clientId });
 
     // Récupérer les informations du dossier
@@ -180,6 +169,50 @@ Par: Agent eSignPro
     return NextResponse.json({
       success: false,
       error: 'Erreur lors de la génération du ZIP'
+    }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const caseId = searchParams.get('caseId');
+    const clientId = searchParams.get('clientId');
+
+    if (!caseId) {
+      return NextResponse.json({
+        success: false,
+        error: 'caseId requis'
+      }, { status: 400 });
+    }
+
+    return await handleDownload(caseId, clientId);
+  } catch (error) {
+    console.error('❌ Erreur GET:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur serveur'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { caseId, clientId } = await request.json();
+
+    if (!caseId) {
+      return NextResponse.json({
+        success: false,
+        error: 'caseId requis'
+      }, { status: 400 });
+    }
+
+    return await handleDownload(caseId, clientId);
+  } catch (error) {
+    console.error('❌ Erreur POST:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur serveur'
     }, { status: 500 });
   }
 }

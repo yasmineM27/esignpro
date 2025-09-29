@@ -22,7 +22,7 @@ const DOCUMENT_TYPES = {
     name: 'Contrat d\'Assurance',
     allowedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
     maxSize: 10 * 1024 * 1024,
-    required: true
+    required: false
   },
   proof_address: {
     name: 'Justificatif de Domicile',

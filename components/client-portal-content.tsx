@@ -314,7 +314,6 @@ Jean Dupont`,
 
       {/* Step 4: Digital Signature */}
       {clientData.uploadedFiles.identityDocuments.length >= 2 &&
-        clientData.uploadedFiles.insuranceContracts.length > 0 &&
         clientData.status !== "completed" && (
           <Card>
             <CardHeader>

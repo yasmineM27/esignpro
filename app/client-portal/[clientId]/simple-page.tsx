@@ -213,9 +213,9 @@ export function SimpleClientPortal({ token }: SimpleClientPortalProps) {
 
                 <DocumentUploadSection
                   title="📄 Contrat d'Assurance"
-                  description="Uploadez votre contrat d'assurance (PDF ou images)"
+                  description="Uploadez votre contrat d'assurance (PDF ou images) - Optionnel"
                   documentType="insurance_contract"
-                  required={true}
+                  required={false}
                   token={token}
                   onUploadComplete={(files) => handleDocumentUploaded('insurance_contract', files)}
                   existingFiles={documentsByType.insurance_contract || []}
@@ -304,7 +304,7 @@ export function SimpleClientPortal({ token }: SimpleClientPortalProps) {
                 border: 'none',
                 cursor: (!documentsByType.identity_front?.length || !documentsByType.identity_back?.length || !documentsByType.insurance_contract?.length) ? 'not-allowed' : 'pointer'
               }}
-              disabled={!documentsByType.identity_front?.length || !documentsByType.identity_back?.length || !documentsByType.insurance_contract?.length}
+              disabled={!documentsByType.identity_front?.length || !documentsByType.identity_back?.length}
             >
               Étape Suivante →
             </button>
