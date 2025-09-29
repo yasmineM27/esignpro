@@ -409,6 +409,61 @@ export function AgentCompleted() {
                   </AlertDescription>
                 </Alert>
 
+                {/* Boutons d'action pour les documents générés */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/agent/auto-sign-documents', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            documentIds: generatedDocuments.map(d => d.id),
+                            caseId: selectedSignature?.caseId
+                          })
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                          alert(`✅ ${data.signedDocuments.length} document(s) signé(s) automatiquement !`)
+                          loadSignatures()
+                        }
+                      } catch (error) {
+                        console.error('Erreur signature auto:', error)
+                      }
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Signer Automatiquement
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      const message = prompt('Message optionnel pour le client:')
+                      try {
+                        const response = await fetch('/api/agent/send-documents-email', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            documentIds: generatedDocuments.map(d => d.id),
+                            caseId: selectedSignature?.caseId,
+                            message
+                          })
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                          alert(`✅ Documents envoyés à ${data.clientEmail} !`)
+                        }
+                      } catch (error) {
+                        console.error('Erreur envoi email:', error)
+                      }
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Envoyer par Email
+                  </Button>
+                </div>
+
                 <div className="space-y-3">
                   <h4 className="font-semibold">Documents Générés</h4>
                   {generatedDocuments.map((doc, index) => (

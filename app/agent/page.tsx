@@ -15,6 +15,7 @@ import { AgentCompletedDynamic } from "@/components/agent-completed-dynamic"
 import { AgentArchiveDynamic } from "@/components/agent-archive-dynamic"
 import { AgentAnalyticsDynamic } from "@/components/agent-analytics-dynamic"
 import { AgentSettingsDynamic } from "@/components/agent-settings-dynamic"
+import { AgentDocumentsHistory } from "@/components/agent-documents-history"
 
 export default function AgentDashboard() {
   const [activeTab, setActiveTab] = useState("new-case")
@@ -43,6 +44,8 @@ export default function AgentDashboard() {
         return <AgentCompletedDynamic />
       case "archive":
         return <AgentArchiveDynamic />
+      case "documents":
+        return <AgentDocumentsHistory />
       case "analytics":
         return <AgentAnalyticsDynamic />
       case "settings":

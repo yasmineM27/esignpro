@@ -179,7 +179,7 @@ export function generateClientEmailTemplate(data: EmailTemplateData & {
         </div>
         
         <div class="content">
-            <div class="greeting">Bonjour ${clientName},</div>
+            <div class="greeting">Bonjour ${clientName.split(' ')[0]},</div>
 
             <p>Votre conseiller <strong>${agentName}</strong> vous invite à finaliser la signature électronique de vos documents via notre plateforme sécurisée.</p>
 
@@ -232,7 +232,7 @@ export function generateClientEmailTemplate(data: EmailTemplateData & {
   const text = `
 eSignPro - Signature Électronique Sécurisée
 
-Bonjour ${clientName},
+Bonjour ${clientName.split(' ')[0]},
 
 Votre conseiller ${agentName} vous invite à finaliser la signature électronique de vos documents via notre plateforme sécurisée.
 

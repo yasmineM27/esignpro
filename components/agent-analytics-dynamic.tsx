@@ -4,20 +4,21 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  FileText, 
-  Mail, 
-  Clock, 
-  CheckCircle, 
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  FileText,
+  Mail,
+  Clock,
+  CheckCircle,
   AlertCircle,
   RefreshCw,
   Calendar,
   Target,
-  Zap
+  Zap,
+  Download
 } from "lucide-react"
 
 interface AgentStats {
@@ -127,14 +128,37 @@ export function AgentAnalyticsDynamic() {
                   <SelectItem value="365">1 an</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={loadStats}
                 disabled={isLoading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Actualiser
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/agent/export-stats?period=${period}`)
+                    const blob = await response.blob()
+                    const url = window.URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `eSignPro_Stats_${new Date().toISOString().split('T')[0]}.xlsx`
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    window.URL.revokeObjectURL(url)
+                  } catch (error) {
+                    console.error('Erreur export:', error)
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
               </Button>
             </div>
           </div>

@@ -11,7 +11,9 @@ import {
   BarChart3,
   Clock,
   CheckCircle,
-  Archive
+  Archive,
+  FileText,
+  Download
 } from "lucide-react"
 
 interface AgentNavigationProps {
@@ -110,6 +112,13 @@ export function AgentNavigation({ activeTab, onTabChange }: AgentNavigationProps
       icon: Archive,
       description: "Dossiers archivés",
       count: stats.archive > 0 ? stats.archive : null
+    },
+    {
+      id: "documents",
+      label: "Documents",
+      icon: FileText,
+      description: "Historique des documents",
+      count: null
     },
     {
       id: "analytics",
