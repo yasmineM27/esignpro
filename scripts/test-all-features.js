@@ -275,6 +275,73 @@ async function testPDFGeneration() {
   }
 }
 
+async function testClientPortalData() {
+  log('\n🔍 TEST 8: Récupération données client portal', 'cyan');
+  log('=' .repeat(50), 'cyan');
+
+  try {
+    const clientsResponse = await fetch(`${BASE_URL}/api/agent/clients?status=all&limit=1`);
+    const clientsData = await clientsResponse.json();
+
+    if (!clientsData.success || clientsData.clients.length === 0) {
+      log('⚠️  Aucun client disponible', 'yellow');
+      return true;
+    }
+
+    const token = clientsData.clients[0].secureToken;
+    const response = await fetch(`${BASE_URL}/api/client/get-case-data?token=${token}`);
+    const data = await response.json();
+
+    if (data.success) {
+      log(`✅ Données client récupérées: ${data.client.firstName} ${data.client.lastName}`, 'green');
+      return true;
+    } else {
+      log(`❌ Erreur: ${data.error}`, 'red');
+      return false;
+    }
+  } catch (error) {
+    log(`❌ Erreur: ${error.message}`, 'red');
+    return false;
+  }
+}
+
+async function testDownloadDocuments() {
+  log('\n📦 TEST 9: Téléchargement documents', 'cyan');
+  log('=' .repeat(50), 'cyan');
+
+  try {
+    const clientsResponse = await fetch(`${BASE_URL}/api/agent/clients?status=all&limit=1`);
+    const clientsData = await clientsResponse.json();
+
+    if (!clientsData.success || clientsData.clients.length === 0) {
+      log('⚠️  Aucun client disponible', 'yellow');
+      return true;
+    }
+
+    const client = clientsData.clients[0];
+    const response = await fetch(`${BASE_URL}/api/agent/download-documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        caseId: client.caseId,
+        clientId: client.id
+      })
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      log(`✅ ZIP généré: ${blob.size} bytes`, 'green');
+      return true;
+    } else {
+      log(`❌ Erreur: ${response.status}`, 'red');
+      return false;
+    }
+  } catch (error) {
+    log(`❌ Erreur: ${error.message}`, 'red');
+    return false;
+  }
+}
+
 async function runAllTests() {
   log('\n🚀 TESTS COMPLETS - NOUVELLES FONCTIONNALITÉS', 'cyan');
   log('=' .repeat(70), 'cyan');
@@ -288,7 +355,9 @@ async function runAllTests() {
     sendEmail: await testSendDocumentsEmail(),
     exportStats: await testExportStats(),
     exportClient: await testExportClientDocuments(),
-    pdfGeneration: await testPDFGeneration()
+    pdfGeneration: await testPDFGeneration(),
+    clientPortalData: await testClientPortalData(),
+    downloadDocuments: await testDownloadDocuments()
   };
 
   // Résumé

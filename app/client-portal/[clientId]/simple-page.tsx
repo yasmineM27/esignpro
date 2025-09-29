@@ -6,9 +6,17 @@ interface SimpleClientPortalProps {
   token: string
 }
 
+interface ClientData {
+  firstName: string
+  lastName: string
+  email: string
+  caseNumber: string
+}
+
 export function SimpleClientPortal({ token }: SimpleClientPortalProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [clientData, setClientData] = useState<ClientData | null>(null)
   const [documentsByType, setDocumentsByType] = useState<{[key: string]: any[]}>({
     identity_front: [],
     identity_back: [],
@@ -19,11 +27,32 @@ export function SimpleClientPortal({ token }: SimpleClientPortalProps) {
   })
 
   useEffect(() => {
-    // Simuler le chargement
-    setTimeout(() => {
+    loadClientData()
+  }, [token])
+
+  const loadClientData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/client/get-case-data?token=${token}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setClientData({
+          firstName: data.client.firstName,
+          lastName: data.client.lastName,
+          email: data.client.email,
+          caseNumber: data.caseNumber
+        })
+      } else {
+        setError(data.error || 'Erreur lors du chargement des données')
+      }
+    } catch (err) {
+      console.error('Erreur chargement données:', err)
+      setError('Erreur de connexion')
+    } finally {
       setLoading(false)
-    }, 1000)
-  }, [])
+    }
+  }
 
   const handleDocumentUploaded = (documentType: string, files: any[]) => {
     setDocumentsByType(prev => ({
@@ -118,11 +147,11 @@ export function SimpleClientPortal({ token }: SimpleClientPortalProps) {
                 Portail Client - Upload Documents
               </h1>
               <p style={{ color: '#6b7280', margin: 0 }}>
-                Veuillez uploader vos documents séparément par type
+                {clientData ? `Bonjour ${clientData.firstName} ${clientData.lastName}` : 'Veuillez uploader vos documents séparément par type'}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '14px', color: '#9ca3af' }}>Token:</div>
+              <div style={{ fontSize: '14px', color: '#9ca3af' }}>Dossier:</div>
               <div style={{
                 fontFamily: 'monospace',
                 fontSize: '12px',
@@ -130,7 +159,7 @@ export function SimpleClientPortal({ token }: SimpleClientPortalProps) {
                 padding: '4px 8px',
                 borderRadius: '4px'
               }}>
-                {token.substring(0, 12)}...
+                {clientData?.caseNumber || token.substring(0, 12) + '...'}
               </div>
             </div>
           </div>

@@ -46,9 +46,15 @@ async function handleDownload(caseId: string, clientId: string | null) {
       .select('*')
       .eq('case_id', caseId);
 
-    // Récupérer les documents uploadés (si table existe)
-    const { data: documents, error: docError } = await supabaseAdmin
-      .from('case_documents')
+    // Récupérer les documents uploadés par le client
+    const { data: clientDocuments, error: clientDocError } = await supabaseAdmin
+      .from('client_documents')
+      .select('*')
+      .eq('token', caseData.secure_token);
+
+    // Récupérer les documents générés
+    const { data: generatedDocuments, error: genDocError } = await supabaseAdmin
+      .from('generated_documents')
       .select('*')
       .eq('case_id', caseId);
 
@@ -79,11 +85,19 @@ async function handleDownload(caseId: string, clientId: string | null) {
         adresse_ip: sig.ip_address,
         navigateur: sig.user_agent
       })) || [],
-      documents: documents?.map(doc => ({
-        nom: doc.file_name,
-        type: doc.file_type,
-        taille: doc.file_size,
-        date_upload: doc.uploaded_at
+      documents_client: clientDocuments?.map(doc => ({
+        id: doc.id,
+        nom: doc.filename,
+        type: doc.documenttype,
+        statut: doc.status,
+        date_upload: doc.uploaddate
+      })) || [],
+      documents_generes: generatedDocuments?.map(doc => ({
+        id: doc.id,
+        nom: doc.document_name,
+        template: doc.template_id,
+        signe: doc.is_signed,
+        date_creation: doc.created_at
       })) || []
     };
 
@@ -103,17 +117,41 @@ async function handleDownload(caseId: string, clientId: string | null) {
       });
     }
 
-    // Ajouter les documents uploadés (simulé pour l'instant)
-    if (documents && documents.length > 0) {
-      const documentsFolder = zip.folder('documents');
-      documents.forEach((doc, index) => {
-        // En production, récupérer le vrai fichier depuis le stockage
-        documentsFolder?.file(`document-${index + 1}-${doc.file_name}`, `Contenu du document ${doc.file_name}`);
+    // Ajouter les documents uploadés par le client
+    if (clientDocuments && clientDocuments.length > 0) {
+      const clientDocsFolder = zip.folder('documents-client');
+      clientDocuments.forEach((doc, index) => {
+        // Ajouter les métadonnées
+        clientDocsFolder?.file(`${doc.documenttype}-${index + 1}-info.json`, JSON.stringify({
+          nom: doc.filename,
+          type: doc.documenttype,
+          chemin: doc.filepath,
+          statut: doc.status,
+          date_upload: doc.uploaddate
+        }, null, 2));
       });
-    } else {
-      // Ajouter un fichier d'exemple si pas de documents
-      const documentsFolder = zip.folder('documents');
-      documentsFolder?.file('aucun-document.txt', 'Aucun document n\'a été uploadé pour ce dossier.');
+    }
+
+    // Ajouter les documents générés
+    if (generatedDocuments && generatedDocuments.length > 0) {
+      const genDocsFolder = zip.folder('documents-generes');
+      generatedDocuments.forEach((doc, index) => {
+        // Ajouter le contenu du document
+        if (doc.document_content) {
+          genDocsFolder?.file(`${doc.document_name}.txt`, doc.document_content);
+        }
+
+        // Ajouter le PDF signé si disponible
+        if (doc.signed_pdf_data) {
+          const base64Data = doc.signed_pdf_data.replace(/^data:application\/pdf;base64,/, '');
+          genDocsFolder?.file(`${doc.document_name}-signe.pdf`, base64Data, { base64: true });
+        }
+      });
+    }
+
+    // Si aucun document
+    if ((!clientDocuments || clientDocuments.length === 0) && (!generatedDocuments || generatedDocuments.length === 0)) {
+      zip.file('aucun-document.txt', 'Aucun document n\'a été uploadé ou généré pour ce dossier.');
     }
 
     // Ajouter un rapport de synthèse
