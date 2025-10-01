@@ -2,6 +2,10 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import ClientPortalUpload from '@/components/client-portal-upload';
 
+// Désactiver le cache pour toujours avoir les données fraîches
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Types
 interface ClientPortalPageProps {
   params: Promise<{ clientId: string }>;
@@ -27,50 +31,50 @@ interface DocumentData {
   uploaddate: string;
 }
 
-// Fonction pour récupérer les données du dossier
+// Fonction pour récupérer les données du dossier (avec cache désactivé)
 async function getCaseData(token: string): Promise<CaseData | null> {
   try {
-    console.log('Attempting to fetch case data for token:', token);
+    console.log('🔍 Récupération données FRAÎCHES pour token:', token);
     const { supabaseAdmin } = require('@/lib/supabase');
 
-    // Récupérer le dossier
+    // Récupérer le dossier avec les données du client en une seule requête
     const { data: caseData, error: caseError } = await supabaseAdmin
       .from('insurance_cases')
-      .select('id, case_number, secure_token, status, insurance_company, policy_number, expires_at, client_id')
+      .select(`
+        id,
+        case_number,
+        secure_token,
+        status,
+        insurance_company,
+        policy_number,
+        expires_at,
+        clients!inner(
+          id,
+          users!inner(
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
       .eq('secure_token', token)
       .single();
 
     if (caseError || !caseData) {
-      console.error('Erreur récupération dossier:', caseError);
-      console.error('Token not found in database:', token);
+      console.error('❌ Erreur récupération dossier:', caseError);
       return null;
     }
 
-    console.log('Case data found:', { id: caseData.id, case_number: caseData.case_number, status: caseData.status });
+    const user = caseData.clients.users;
+    const clientName = `${user.first_name} ${user.last_name}`;
 
-    // Récupérer le client
-    const { data: clientData, error: clientError } = await supabaseAdmin
-      .from('clients')
-      .select('user_id')
-      .eq('id', caseData.client_id)
-      .single();
-
-    if (clientError || !clientData) {
-      console.error('Erreur récupération client:', clientError);
-      return null;
-    }
-
-    // Récupérer l'utilisateur
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('first_name, last_name, email')
-      .eq('id', clientData.user_id)
-      .single();
-
-    if (userError || !userData) {
-      console.error('Erreur récupération utilisateur:', userError);
-      return null;
-    }
+    console.log('✅ Données récupérées:', {
+      caseNumber: caseData.case_number,
+      clientName: clientName,
+      firstName: user.first_name,
+      lastName: user.last_name
+    });
 
     return {
       id: caseData.id,
@@ -79,12 +83,12 @@ async function getCaseData(token: string): Promise<CaseData | null> {
       status: caseData.status,
       insurance_company: caseData.insurance_company || '',
       policy_number: caseData.policy_number || '',
-      client_name: `${userData.first_name} ${userData.last_name}`,
-      client_email: userData.email,
+      client_name: clientName,
+      client_email: user.email,
       expires_at: caseData.expires_at
     };
   } catch (error) {
-    console.error('Erreur connexion base:', error);
+    console.error('❌ Erreur connexion base:', error);
     return null;
   }
 }
