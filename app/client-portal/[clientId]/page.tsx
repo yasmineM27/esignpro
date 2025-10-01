@@ -141,10 +141,10 @@ function ClientPortalInterface({ caseData, documents, token }: {
           textAlign: 'center'
         }}>
           <h1 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: 'bold' }}>
-            Finalisation de votre dossier
+            Bonjour {caseData.client_name}
           </h1>
           <p style={{ margin: '0', fontSize: '16px', opacity: 0.9 }}>
-            Bonjour {caseData.client_name}
+            Finalisation de votre dossier
           </p>
         </div>
 

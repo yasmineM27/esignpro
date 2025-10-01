@@ -34,6 +34,12 @@ interface Document {
   updatedAt: string
 }
 
+interface Stats {
+  generated: number
+  uploaded: number
+  total: number
+}
+
 export function AgentDocumentsHistory() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([])
@@ -42,6 +48,7 @@ export function AgentDocumentsHistory() {
   const [filterSigned, setFilterSigned] = useState<'all' | 'signed' | 'unsigned'>('all')
   const [filterDate, setFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
   const [total, setTotal] = useState(0)
+  const [stats, setStats] = useState<Stats>({ generated: 0, uploaded: 0, total: 0 })
 
   useEffect(() => {
     loadDocuments()
@@ -60,6 +67,10 @@ export function AgentDocumentsHistory() {
       if (data.success) {
         setDocuments(data.documents)
         setTotal(data.total)
+        setStats(data.stats || { generated: 0, uploaded: 0, total: 0 })
+        console.log('📊 Documents chargés:', data.stats)
+      } else {
+        console.error('Erreur API:', data.error)
       }
     } catch (error) {
       console.error('Erreur chargement documents:', error)
@@ -154,6 +165,43 @@ export function AgentDocumentsHistory() {
 
   return (
     <div className="space-y-6">
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Documents Générés</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.generated}</p>
+              </div>
+              <FileCheck className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Documents Uploadés</p>
+                <p className="text-2xl font-bold text-green-600">{stats.uploaded}</p>
+              </div>
+              <FileText className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Documents</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.total}</p>
+              </div>
+              <Building2 className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* En-tête et filtres */}
       <Card>
         <CardHeader>
@@ -162,7 +210,7 @@ export function AgentDocumentsHistory() {
               <FileText className="h-5 w-5" />
               Historique des Documents
             </span>
-            <Badge variant="outline">{total} document(s)</Badge>
+            <Badge variant="outline">{filteredDocuments.length} / {total} document(s) affiché(s)</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
