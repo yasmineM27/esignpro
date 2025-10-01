@@ -56,21 +56,12 @@ export class DatabaseService {
     try {
       console.log('[DB] Creating insurance case for:', clientData.email)
 
-      // FORCER LE MODE MOCK pour éviter les erreurs Supabase
-      console.log('[DB] Using FORCED mock mode for development')
-      return this.createMockInsuranceCase(clientData, agentId)
-
-      // Code Supabase commenté temporairement
-      /*
       // Vérifier si Supabase est configuré
       if (!supabaseAdmin) {
         console.log('[DB] Using mock mode - Supabase not configured')
         return this.createMockInsuranceCase(clientData, agentId)
       }
-      */
 
-      /*
-      // Code Supabase temporairement désactivé pour éviter les erreurs
       try {
         // 1. Créer ou récupérer l'utilisateur client
         let user = await this.findOrCreateUser({
@@ -79,18 +70,83 @@ export class DatabaseService {
           last_name: clientData.nom,
           role: 'client'
         })
-        // ... reste du code Supabase
+
+        if (!user) {
+          throw new Error('Failed to create or find user')
+        }
+
+        console.log('[DB] User created/found:', user.id)
+
+        // 2. Créer ou récupérer le client
+        let client = await this.findOrCreateClient(user.id, {
+          date_of_birth: clientData.dateNaissance,
+          address_line1: clientData.adresse,
+          city: clientData.ville,
+          postal_code: clientData.npa,
+          country: 'CH'
+        })
+
+        if (!client) {
+          throw new Error('Failed to create or find client')
+        }
+
+        console.log('[DB] Client created/found:', client.id)
+
+        // 3. Récupérer ou créer l'agent
+        let agent = await this.findOrCreateDefaultAgent(agentId)
+        console.log('[DB] Agent:', agent?.id)
+
+        // 4. Créer le dossier d'assurance
+        const caseNumber = this.generateCaseNumber()
+        const secureToken = this.generateSecureToken()
+
+        const { data: insuranceCase, error: caseError } = await supabaseAdmin
+          .from('insurance_cases')
+          .insert([{
+            case_number: caseNumber,
+            client_id: client.id,
+            agent_id: agent?.id,
+            insurance_type: 'termination',
+            insurance_company: clientData.destinataire,
+            policy_number: clientData.numeroPolice,
+            policy_type: clientData.typeFormulaire,
+            termination_date: clientData.dateLamal || clientData.dateLCA,
+            reason_for_termination: 'Client request',
+            status: 'pending_documents',
+            title: `Résiliation ${clientData.typeFormulaire}`,
+            description: `Dossier de résiliation pour ${clientData.prenom} ${clientData.nom}`,
+            priority: 1,
+            secure_token: secureToken,
+            token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          }])
+          .select()
+          .single()
+
+        if (caseError || !insuranceCase) {
+          console.error('[DB] Error creating insurance case:', caseError)
+          throw new Error('Failed to create insurance case')
+        }
+
+        console.log('[DB] Insurance case created:', insuranceCase.id)
+
+        return {
+          success: true,
+          clientId: secureToken,
+          caseId: insuranceCase.id,
+          caseNumber: caseNumber,
+          secureToken: secureToken
+        }
+
       } catch (error) {
         console.error('[DB] Database error, falling back to mock mode:', error)
         return this.createMockInsuranceCase(clientData, agentId)
       }
-      */
 
     } catch (error) {
       console.error('[DB] Error in createInsuranceCase:', error)
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
   }

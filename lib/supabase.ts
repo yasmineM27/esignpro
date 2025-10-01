@@ -19,6 +19,15 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      return fetch(url, {
+        ...options,
+        // @ts-ignore
+        timeout: 30000 // 30 seconds timeout
+      })
+    }
   }
 })
 
