@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { uploadFileToStorage } from '@/lib/supabase-storage'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
@@ -117,35 +116,22 @@ export async function POST(request: NextRequest) {
     // Traiter chaque fichier
     for (const file of files) {
       try {
+        // Générer un nom de fichier unique
         const timestamp = Date.now()
         const randomId = Math.random().toString(36).substr(2, 9)
         const fileExtension = file.name.split('.').pop()
         const fileName = `${documentType}_${timestamp}_${randomId}.${fileExtension}`
-
-        // 1. UPLOADER VERS SUPABASE STORAGE (PRIORITAIRE)
-        console.log('📤 Upload vers Supabase Storage...');
-        const storageResult = await uploadFileToStorage(file, clientId, documentType);
-
-        let storagePath = '';
-        let storageUrl = '';
-
-        if (storageResult.success) {
-          storagePath = storageResult.path || '';
-          storageUrl = storageResult.url || '';
-          console.log('✅ Fichier uploadé vers Supabase Storage:', storagePath);
-        } else {
-          console.warn('⚠️ Échec upload Supabase Storage:', storageResult.error);
-        }
-
-        // 2. BACKUP LOCAL (au cas où)
         const filePath = join(uploadDir, fileName)
         const relativePath = `/uploads/clients/${clientId}/${documentType}/${fileName}`
+
+        // Sauvegarder le fichier physiquement
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
         await writeFile(filePath, buffer)
-        console.log('💾 Backup local sauvegardé:', relativePath)
 
-        // 3. ENREGISTRER EN BASE DE DONNÉES
+        console.log('✅ Fichier sauvegardé:', relativePath)
+
+        // Enregistrer en base de données si Supabase est configuré
         let dbRecord = null
         if (supabaseAdmin) {
           try {
@@ -156,13 +142,11 @@ export async function POST(request: NextRequest) {
                 token: token,
                 documenttype: documentType,
                 filename: file.name,
-                filepath: storagePath || relativePath, // Priorité à Supabase Storage
-                storage_url: storageUrl, // Nouvelle colonne pour l'URL signée
+                filepath: relativePath,
                 filesize: file.size,
                 mimetype: file.type,
                 uploaddate: new Date().toISOString(),
-                status: 'uploaded',
-                storage_type: storageResult.success ? 'supabase' : 'local' // Indiquer le type de stockage
+                status: 'uploaded'
               }])
               .select()
               .single()
@@ -182,9 +166,7 @@ export async function POST(request: NextRequest) {
           id: dbRecord?.id || randomId,
           name: file.name,
           type: documentType,
-          url: storageUrl || relativePath, // Priorité à l'URL Supabase
-          storagePath: storagePath,
-          storageType: storageResult.success ? 'supabase' : 'local',
+          url: relativePath,
           size: file.size,
           mimeType: file.type,
           uploadDate: new Date().toISOString(),

@@ -28,11 +28,11 @@ async function testEmailPreview() {
     
     if (response.ok) {
       const html = await response.text();
-      const hasBonjour = html.includes('Bonjour ');
-      const hasFullName = html.includes('Bonjour ');
+      const hasBonjour = html.includes('Bonjour Yasmine');
+      const hasFullName = html.includes('Bonjour Yasmine Massaoudi');
       
       if (hasBonjour && !hasFullName) {
-        log('✅ Format du nom correct: "Bonjour " (prénom seulement)', 'green');
+        log('✅ Format du nom correct: "Bonjour Yasmine" (prénom seulement)', 'green');
       } else {
         log('❌ Format du nom incorrect', 'red');
       }
