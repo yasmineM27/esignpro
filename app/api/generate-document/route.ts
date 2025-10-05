@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { DocumentAutoFiller } from "@/lib/document-templates"
 import { WordDocumentGenerator } from "@/lib/word-generator"
+import { DatabaseService, type ClientData } from "@/lib/database-service"
 
 interface PersonInfo {
   nom: string
@@ -43,6 +44,13 @@ export async function POST(request: NextRequest) {
   try {
     const clientData: ClientData = await request.json()
 
+    console.log("📝 Génération document avec sauvegarde BDD:", {
+      nom: clientData.nom,
+      prenom: clientData.prenom,
+      email: clientData.email,
+      typeFormulaire: clientData.typeFormulaire
+    })
+
     // Validate client data
     const validation = DocumentAutoFiller.validateClientData(clientData)
     if (!validation.isValid) {
@@ -56,24 +64,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate the document content using auto-fill logic
-    const documentContent = DocumentAutoFiller.fillResignationTemplate(clientData)
+    // ✅ 1. SAUVEGARDER EN BASE DE DONNÉES
+    const dbService = new DatabaseService()
+    const caseResult = await dbService.createInsuranceCase(clientData)
 
-    // Generate HTML version for preview
+    if (!caseResult.success) {
+      console.error("❌ Erreur création dossier BDD:", caseResult.error)
+      return NextResponse.json({
+        success: false,
+        message: "Erreur lors de la sauvegarde en base de données",
+        error: caseResult.error
+      }, { status: 500 })
+    }
+
+    console.log("✅ Dossier créé en BDD:", {
+      caseId: caseResult.caseId,
+      caseNumber: caseResult.caseNumber,
+      secureToken: caseResult.secureToken
+    })
+
+    // ✅ 2. GÉNÉRER LE DOCUMENT
+    const documentContent = DocumentAutoFiller.fillResignationTemplate(clientData)
     const htmlContent = WordDocumentGenerator.generateHTML(documentContent)
 
-    // Generate client ID
-    const clientId = generateClientId()
-
-    // In a real implementation, you would also:
-    // 1. Generate actual Word document
-    // 2. Save to database
-    // 3. Create audit trail
-
-    console.log("[v0] Document generated with auto-fill:", {
-      clientId,
-      clientName: clientData.nomPrenom,
-      personCount: clientData.personnes.length,
+    console.log("✅ Document généré:", {
+      caseNumber: caseResult.caseNumber,
+      clientName: `${clientData.prenom} ${clientData.nom}`,
+      personCount: clientData.personnes?.length || 0,
       contentLength: documentContent.length,
     })
 
@@ -81,16 +98,20 @@ export async function POST(request: NextRequest) {
       success: true,
       documentContent,
       htmlContent,
-      clientId,
-      message: "Document généré avec succès",
+      clientId: caseResult.secureToken, // Utiliser le token sécurisé comme clientId
+      caseId: caseResult.caseId,
+      caseNumber: caseResult.caseNumber,
+      secureToken: caseResult.secureToken,
+      message: "Document généré et dossier créé avec succès",
       metadata: {
         generatedAt: new Date().toISOString(),
-        personCount: clientData.personnes.length,
+        personCount: clientData.personnes?.length || 0,
         templateVersion: "1.0",
+        savedToDatabase: true
       },
     })
   } catch (error) {
-    console.error("[v0] Error generating document:", error)
+    console.error("❌ Erreur génération document:", error)
     return NextResponse.json({
       success: false,
       message: "Erreur lors de la génération du document",
@@ -98,9 +119,4 @@ export async function POST(request: NextRequest) {
       stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
     }, { status: 500 })
   }
-}
-
-function generateClientId(): string {
-  // Générer un UUID v4 valide au lieu d'un ID personnalisé
-  return crypto.randomUUID()
 }

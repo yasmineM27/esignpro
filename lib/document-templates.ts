@@ -214,7 +214,7 @@ export class DocumentAutoFiller {
       if (!personne.nom.trim()) missingFields.push(`Nom personne ${index + 1}`)
       if (!personne.prenom.trim()) missingFields.push(`Prénom personne ${index + 1}`)
       if (!personne.dateNaissance) missingFields.push(`Date naissance personne ${index + 1}`)
-      if (!personne.numeroPolice.trim()) missingFields.push(`Numéro police personne ${index + 1}`)
+      // Note: numeroPolice est seulement sur le client principal, pas sur chaque personne
     })
 
     return {

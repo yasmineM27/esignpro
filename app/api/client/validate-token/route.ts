@@ -54,11 +54,10 @@ export async function GET(request: NextRequest) {
         id,
         case_number,
         secure_token,
-        token_expires_at,
+        expires_at,
         status,
-        title,
-        description,
-        insurance_type,
+        insurance_company,
+        policy_number,
         client_id,
         clients!inner (
           id,
@@ -89,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     // Vérifier l'expiration
     const now = new Date()
-    const expiresAt = new Date(insuranceCase.token_expires_at)
+    const expiresAt = new Date(insuranceCase.expires_at)
     
     if (now > expiresAt) {
       console.log('⏰ Token expiré:', expiresAt)
@@ -114,10 +113,9 @@ export async function GET(request: NextRequest) {
         clientEmail: clientUser.email,
         agentName: agentUser ? `${agentUser.first_name} ${agentUser.last_name}` : 'Agent eSignPro',
         agentEmail: agentUser?.email || 'support@esignpro.ch',
-        documentType: insuranceCase.title || insuranceCase.insurance_type,
+        documentType: insuranceCase.insurance_company || 'Document de résiliation',
         status: insuranceCase.status,
-        description: insuranceCase.description,
-        expiresAt: insuranceCase.token_expires_at,
+        expiresAt: insuranceCase.expires_at,
         createdAt: insuranceCase.created_at
       }
     })

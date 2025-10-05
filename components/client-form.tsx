@@ -27,6 +27,7 @@ interface ClientData {
   dateNaissance: string
   numeroPolice: string
   email: string
+  telephone: string
 
   // Adresse séparée
   adresse: string
@@ -59,6 +60,7 @@ export function ClientForm() {
     dateNaissance: "",
     numeroPolice: "",
     email: "",
+    telephone: "",
 
     // Adresse séparée
     adresse: "",
@@ -188,14 +190,24 @@ export function ClientForm() {
         body: JSON.stringify(clientData),
       })
 
+      if (!generateResponse.ok) {
+        throw new Error(`Erreur HTTP ${generateResponse.status}: ${generateResponse.statusText}`)
+      }
+
       const generateResult = await generateResponse.json()
 
       if (!generateResult.success) {
-        throw new Error(generateResult.message)
+        throw new Error(generateResult.error || generateResult.message || 'Erreur lors de la génération du document')
       }
 
       setGeneratedDocument(generateResult.documentContent)
-      setClientId(generateResult.clientId)
+      setClientId(generateResult.secureToken) // Utiliser le token sécurisé
+
+      console.log('✅ Document généré et dossier créé:', {
+        caseId: generateResult.caseId,
+        caseNumber: generateResult.caseNumber,
+        secureToken: generateResult.secureToken
+      })
 
       const emailResponse = await fetch("/api/send-email", {
         method: "POST",
@@ -204,16 +216,23 @@ export function ClientForm() {
         },
         body: JSON.stringify({
           clientEmail: clientData.email,
-          clientName: clientData.nomPrenom,
-          clientId: generateResult.clientId,
+          clientName: `${clientData.prenom} ${clientData.nom}`,
+          clientId: generateResult.secureToken, // Passer le token sécurisé
           documentContent: generateResult.documentContent,
+          caseId: generateResult.caseId,
+          caseNumber: generateResult.caseNumber,
+          secureToken: generateResult.secureToken
         }),
       })
+
+      if (!emailResponse.ok) {
+        throw new Error(`Erreur HTTP ${emailResponse.status}: ${emailResponse.statusText}`)
+      }
 
       const emailResult = await emailResponse.json()
 
       if (!emailResult.success) {
-        throw new Error(emailResult.message)
+        throw new Error(emailResult.error || emailResult.message || 'Erreur lors de l\'envoi de l\'email')
       }
 
       // Store the secure token for the portal link
@@ -249,6 +268,7 @@ export function ClientForm() {
       dateNaissance: "",
       numeroPolice: "",
       email: "",
+      telephone: "",
       adresse: "",
       npa: "",
       ville: "",
@@ -357,6 +377,18 @@ export function ClientForm() {
               onChange={(e) => updateClientData({ email: e.target.value })}
               placeholder="client@example.com"
               required
+            />
+          </div>
+
+          {/* Téléphone */}
+          <div>
+            <Label htmlFor="telephone">Téléphone du Client</Label>
+            <Input
+              id="telephone"
+              type="tel"
+              value={clientData.telephone}
+              onChange={(e) => updateClientData({ telephone: e.target.value })}
+              placeholder="+41 XX XXX XX XX"
             />
           </div>
 

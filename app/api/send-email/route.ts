@@ -5,168 +5,129 @@ import { generateSecureToken, supabaseAdmin } from "@/lib/supabase"
 interface EmailData {
   clientEmail: string
   clientName: string
-  clientId: string
+  clientId: string // Maintenant c'est le secureToken du dossier créé
   documentContent: string
+  caseId?: string
+  caseNumber?: string
+  secureToken?: string
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { clientEmail, clientName, clientId: formClientId, documentContent }: EmailData = await request.json()
+    const {
+      clientEmail,
+      clientName,
+      clientId: secureToken,
+      documentContent,
+      caseId,
+      caseNumber
+    }: EmailData = await request.json()
 
-    console.log('Creating insurance case for client form workflow:', { clientEmail, clientName, formClientId })
+    console.log('📧 Envoi email pour dossier existant:', {
+      clientEmail,
+      clientName,
+      secureToken,
+      caseId,
+      caseNumber
+    })
 
-    // First, find or create the user
-    const { data: existingUser, error: userQueryError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', clientEmail)
-      .single()
-
-    let userId: string
-
-    if (userQueryError || !existingUser) {
-      // Create user if doesn't exist
-      const { data: newUser, error: userError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          email: clientEmail,
-          first_name: clientName.split(' ')[0],
-          last_name: clientName.split(' ')[1] || '',
-          role: 'client'
-        })
-        .select('id')
-        .single()
-
-      if (userError || !newUser) {
-        console.error('Error creating user:', userError)
-        throw new Error('Failed to create user')
-      }
-      userId = newUser.id
-    } else {
-      userId = existingUser.id
-    }
-
-    // Find or create client
-    const { data: existingClient, error: clientQueryError } = await supabaseAdmin
-      .from('clients')
-      .select('id')
-      .eq('user_id', userId)
-      .single()
-
-    let dbClientId: string
-
-    if (clientQueryError || !existingClient) {
-      // Create client if doesn't exist
-      const { data: newClient, error: clientError } = await supabaseAdmin
-        .from('clients')
-        .insert({
-          user_id: userId,
-          country: 'CH'
-        })
-        .select('id')
-        .single()
-
-      if (clientError || !newClient) {
-        console.error('Error creating client:', clientError)
-        throw new Error('Failed to create client')
-      }
-      dbClientId = newClient.id
-    } else {
-      dbClientId = existingClient.id
-    }
-
-    // Find or create agent (use default agent)
-    const { data: existingAgent, error: agentQueryError } = await supabaseAdmin
-      .from('agents')
-      .select('id')
-      .limit(1)
-      .single()
-
-    let agentId: string | undefined
-
-    if (agentQueryError || !existingAgent) {
-      // Create default agent if none exists
-      const { data: defaultUser, error: defaultUserError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          email: 'agent@esignpro.ch',
-          first_name: 'Support',
-          last_name: 'eSignPro',
-          role: 'agent'
-        })
-        .select('id')
-        .single()
-
-      if (!defaultUserError && defaultUser) {
-        const { data: newAgent, error: agentError } = await supabaseAdmin
-          .from('agents')
-          .insert({
-            user_id: defaultUser.id,
-            agent_code: 'DEFAULT'
-          })
-          .select('id')
-          .single()
-
-        if (!agentError && newAgent) {
-          agentId = newAgent.id
-        }
-      }
-    } else {
-      agentId = existingAgent.id
-    }
-
-    // Generate a secure token for the client portal
-    const secureToken = generateSecureToken()
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-
-    // Create insurance case
-    const { data: insuranceCase, error: caseError } = await supabaseAdmin
+    // ✅ Récupérer le dossier existant au lieu de le créer
+    const { data: existingCase, error: caseError } = await supabaseAdmin
       .from('insurance_cases')
-      .insert({
-        case_number: `FORM-${Date.now()}`,
-        client_id: dbClientId,
-        agent_id: agentId,
-        insurance_company: 'Client Form Submission',
-        policy_number: 'FORM-SUBMISSION',
-        policy_type: 'Résiliation',
+      .select(`
+        id,
+        case_number,
+        secure_token,
+        status,
+        client_id
+      `)
+      .eq('secure_token', secureToken)
+      .single()
+
+    if (caseError || !existingCase) {
+      console.error('❌ Dossier non trouvé:', caseError)
+      return NextResponse.json({
+        success: false,
+        error: 'Dossier non trouvé. Veuillez régénérer le document.'
+      }, { status: 404 })
+    }
+
+    // Récupérer les informations du client séparément
+    const { data: clientInfo, error: clientError } = await supabaseAdmin
+      .from('clients')
+      .select(`
+        id,
+        users!inner(
+          id,
+          email,
+          first_name,
+          last_name
+        )
+      `)
+      .eq('id', existingCase.client_id)
+      .single()
+
+    if (clientError || !clientInfo) {
+      console.error('❌ Client non trouvé:', clientError)
+      return NextResponse.json({
+        success: false,
+        error: 'Informations client non trouvées.'
+      }, { status: 404 })
+    }
+
+    console.log('✅ Dossier trouvé:', {
+      caseId: existingCase.id,
+      caseNumber: existingCase.case_number,
+      clientEmail: clientInfo.users.email
+    })
+
+    // ✅ Mettre à jour le statut du dossier existant
+    const { data: updatedCase, error: updateError } = await supabaseAdmin
+      .from('insurance_cases')
+      .update({
         status: 'email_sent',
-        secure_token: secureToken,
-        termination_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        reason_for_termination: `Document généré automatiquement via formulaire client - ${clientName}`,
-        expires_at: expiresAt.toISOString()
+        updated_at: new Date().toISOString()
       })
+      .eq('id', existingCase.id)
       .select()
       .single()
 
-    if (caseError) {
-      console.error('Error creating insurance case:', caseError)
-      throw new Error('Failed to create insurance case')
+    if (updateError) {
+      console.error('❌ Erreur mise à jour statut:', updateError)
+      return NextResponse.json({
+        success: false,
+        error: 'Erreur lors de la mise à jour du dossier'
+      }, { status: 500 })
     }
 
-    console.log('Insurance case created:', insuranceCase.id, 'with token:', secureToken)
+    console.log('✅ Statut dossier mis à jour:', updatedCase.status)
 
     // Generate the secure client portal link
-    const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client-portal/${secureToken}`
+    const portalLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://esignpro.ch"}/client-portal/${existingCase.secure_token}`
 
     // Send email to client using direct data (bypass database lookup)
     const clientEmailSent = await emailService.sendClientNotification({
-      clientEmail,
-      clientName,
-      clientId: formClientId,
+      clientEmail: clientInfo.users.email,
+      clientName: `${clientInfo.users.first_name} ${clientInfo.users.last_name}`,
+      clientId: existingCase.secure_token,
       portalLink,
-      documentContent: `Dossier d'assurance ${insuranceCase.case_number} - ${insuranceCase.insurance_company}`
+      documentContent: `Dossier d'assurance ${existingCase.case_number} - Document de résiliation`
     })
 
     if (!clientEmailSent) {
       throw new Error("Échec de l'envoi de l'email au client")
     }
 
+    console.log('✅ Email envoyé avec succès à:', clientInfo.users.email)
+
     return NextResponse.json({
       success: true,
       message: "Email envoyé avec succès",
       portalLink,
       emailSent: true,
-      secureToken
+      caseId: existingCase.id,
+      caseNumber: existingCase.case_number,
+      secureToken: existingCase.secure_token
     })
   } catch (error) {
     console.error("[v0] Error sending email:", error)
