@@ -18,7 +18,7 @@ interface ClientPortalUploadProps {
 const DOCUMENT_TYPES = [
   { type: 'identity_front', label: '🆔 CIN Recto', required: true },
   { type: 'identity_back', label: '🆔 CIN Verso', required: true },
-  { type: 'insurance_contract', label: '📄 Contrat Assurance', required: true },
+  { type: 'insurance_contract', label: '📄 Contrat Assurance', required: false }, // ✅ NON REQUIS
   { type: 'proof_address', label: '🏠 Justificatif Domicile', required: false },
   { type: 'bank_statement', label: '🏦 Relevé Bancaire', required: false },
   { type: 'additional', label: '📎 Documents Additionnels', required: false }

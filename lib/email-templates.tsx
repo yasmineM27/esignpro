@@ -179,7 +179,7 @@ export function generateClientEmailTemplate(data: EmailTemplateData & {
         </div>
         
         <div class="content">
-            <div class="greeting">Bonjour ${clientName.split(' ')[0]},</div>
+            <div class="greeting">Bonjour ${clientName.includes(' ') ? clientName.split(' ')[0] : clientName},</div>
 
             <p>Votre conseiller <strong>${agentName}</strong> vous invite à finaliser la signature électronique de vos documents via notre plateforme sécurisée.</p>
 

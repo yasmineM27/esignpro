@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     console.log('👥 Récupération clients agent:', { agentId, status, limit, offset, search });
 
-    // Construire la requête de base
+    // Construire la requête de base - SANS inner pour récupérer TOUS les dossiers
     let query = supabaseAdmin
       .from('insurance_cases')
       .select(`
@@ -28,9 +28,11 @@ export async function GET(request: NextRequest) {
         created_at,
         completed_at,
         updated_at,
-        clients!inner(
+        client_id,
+        clients(
           id,
-          users!inner(
+          user_id,
+          users(
             id,
             first_name,
             last_name,
@@ -78,9 +80,17 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
+    console.log(`✅ ${cases?.length || 0} dossier(s) récupéré(s) de la base`);
+
     // Formater les données pour l'interface et éliminer les doublons par client
     const clientsMap = new Map();
     cases?.forEach(caseItem => {
+      // Vérifier que le client et l'utilisateur existent
+      if (!caseItem.clients || !caseItem.clients.users) {
+        console.warn('⚠️ Dossier sans client/utilisateur:', caseItem.id);
+        return;
+      }
+
       const clientKey = caseItem.clients.id; // Utiliser seulement l'ID client pour éviter les doublons
       if (!clientsMap.has(clientKey)) {
         clientsMap.set(clientKey, {

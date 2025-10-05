@@ -55,12 +55,12 @@ const DOCUMENT_CONFIGS = {
   },
   insurance_contract: {
     title: "Contrat d'Assurance",
-    description: "Votre contrat d'assurance actuel",
+    description: "Votre contrat d'assurance actuel (optionnel)",
     instructions: "Document PDF ou photo claire du contrat",
     maxFiles: 3,
     acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
     icon: "📄",
-    required: true
+    required: false // ✅ NON REQUIS
   },
   proof_address: {
     title: "Justificatif de Domicile",

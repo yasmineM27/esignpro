@@ -55,10 +55,16 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Vérifier que les documents requis sont présents
-    const requiredDocs = ['identity_front', 'identity_back', 'insurance_contract'];
+    // Vérifier que les documents requis sont présents (contrat d'assurance maintenant optionnel)
+    const requiredDocs = ['identity_front', 'identity_back']; // ✅ Supprimé 'insurance_contract'
     const uploadedDocTypes = documents?.map(d => d.documenttype) || [];
     const missingDocs = requiredDocs.filter(type => !uploadedDocTypes.includes(type));
+
+    console.log('📋 Vérification documents:', {
+      requiredDocs,
+      uploadedDocTypes,
+      missingDocs
+    });
 
     if (missingDocs.length > 0) {
       return NextResponse.json({
@@ -179,8 +185,8 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Vérifier les documents requis
-    const requiredDocs = ['identity_front', 'identity_back', 'insurance_contract'];
+    // Vérifier les documents requis (contrat d'assurance optionnel)
+    const requiredDocs = ['identity_front', 'identity_back']; // ✅ Supprimé 'insurance_contract'
     const uploadedDocTypes = documents?.map(d => d.documenttype) || [];
     const missingDocs = requiredDocs.filter(type => !uploadedDocTypes.includes(type));
 

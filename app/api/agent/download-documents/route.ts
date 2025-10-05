@@ -154,17 +154,33 @@ async function handleDownload(caseId: string, clientId: string | null) {
       zip.file('aucun-document.txt', 'Aucun document n\'a été uploadé ou généré pour ce dossier.');
     }
 
+    // Combiner tous les documents pour le rapport
+    const allDocuments = [
+      ...(clientDocuments || []).map(doc => ({
+        file_name: doc.filename,
+        file_type: doc.documenttype,
+        file_size: doc.filesize || 'N/A',
+        source: 'Client'
+      })),
+      ...(generatedDocuments || []).map(doc => ({
+        file_name: doc.document_name,
+        file_type: 'Document généré',
+        file_size: 'N/A',
+        source: 'Système'
+      }))
+    ];
+
     // Ajouter un rapport de synthèse
     const rapport = `RAPPORT DE SYNTHÈSE - DOSSIER ${caseData.case_number}
 =====================================
 
 Client: ${caseData.clients.users.first_name} ${caseData.clients.users.last_name}
 Email: ${caseData.clients.users.email}
-Téléphone: ${caseData.clients.users.phone}
+Téléphone: ${caseData.clients.users.phone || 'Non renseigné'}
 
 Assurance:
 - Compagnie: ${caseData.insurance_company}
-- Type: ${caseData.policy_type}
+- Type: ${caseData.policy_type || 'Non spécifié'}
 - Numéro de police: ${caseData.policy_number}
 
 Dossier:
@@ -176,8 +192,11 @@ Dossier:
 Signatures: ${signatures?.length || 0}
 ${signatures?.map((sig, i) => `  ${i + 1}. Signée le ${new Date(sig.signed_at).toLocaleString('fr-FR')} - ${sig.is_valid ? 'Valide' : 'En attente'}`).join('\n') || '  Aucune signature'}
 
-Documents: ${documents?.length || 0}
-${documents?.map((doc, i) => `  ${i + 1}. ${doc.file_name} (${doc.file_type}) - ${doc.file_size} bytes`).join('\n') || '  Aucun document'}
+Documents: ${allDocuments.length || 0}
+${allDocuments.map((doc, i) => `  ${i + 1}. ${doc.file_name} (${doc.file_type}) - ${doc.file_size} - Source: ${doc.source}`).join('\n') || '  Aucun document'}
+
+Documents Client: ${clientDocuments?.length || 0}
+Documents Générés: ${generatedDocuments?.length || 0}
 
 Lien portail client: https://esignpro.ch/client-portal/${caseData.secure_token}
 

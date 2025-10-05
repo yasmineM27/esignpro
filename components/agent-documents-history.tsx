@@ -5,17 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { 
-  FileText, 
-  Download, 
-  Search, 
+import {
+  FileText,
+  Download,
+  Search,
   Filter,
   CheckCircle,
   XCircle,
   Calendar,
   User,
   Building2,
-  FileCheck
+  FileCheck,
+  Eye
 } from 'lucide-react'
 
 interface Document {
@@ -133,6 +134,76 @@ export function AgentDocumentsHistory() {
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Erreur téléchargement:', error)
+    }
+  }
+
+  const handleDownload = async (document: Document) => {
+    try {
+      console.log('📥 Téléchargement document:', document.id)
+
+      const response = await fetch('/api/agent/download-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId: document.id,
+          caseId: document.caseId,
+          documentName: document.documentName
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Erreur lors du téléchargement')
+      }
+
+      const contentType = response.headers.get('content-type')
+      const blob = await response.blob()
+
+      if (blob.size === 0) {
+        throw new Error('Le fichier est vide')
+      }
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+
+      // Déterminer l'extension selon le type de contenu
+      let extension = '.pdf'
+      if (contentType?.includes('image/')) {
+        extension = contentType.includes('png') ? '.png' : '.jpg'
+      } else if (contentType?.includes('text/')) {
+        extension = '.txt'
+      }
+
+      a.download = `${document.documentName}-${document.caseNumber}${extension}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      console.log('✅ Document téléchargé avec succès')
+    } catch (error) {
+      console.error('❌ Erreur téléchargement:', error)
+      alert(`Erreur lors du téléchargement: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
+    }
+  }
+
+  const handleViewDocument = async (document: Document) => {
+    try {
+      console.log('👁️ Visualisation document:', document.id)
+
+      const type = document.templateId ? 'generated' : 'client'
+      const url = `/api/agent/view-document?documentId=${document.id}&type=${type}`
+
+      // Ouvrir dans un nouvel onglet
+      window.open(url, '_blank')
+
+    } catch (error) {
+      console.error('❌ Erreur visualisation:', error)
+      alert(`Erreur lors de la visualisation: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
     }
   }
 
@@ -336,16 +407,26 @@ export function AgentDocumentsHistory() {
                 </div>
 
                 <div className="flex gap-2">
-                  {doc.hasPdf && (
+                  {(doc.hasPdf || doc.templateId) && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => downloadDocument(doc.id, doc.documentName)}
+                      onClick={() => handleViewDocument(doc)}
+                      title="Visualiser le document"
                     >
-                      <Download className="h-4 w-4 mr-1" />
-                      PDF
+                      <Eye className="h-4 w-4 mr-1" />
+                      Voir
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload(doc)}
+                    title="Télécharger le document"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    {doc.hasPdf ? 'PDF' : 'Télécharger'}
+                  </Button>
                 </div>
               </div>
             </CardContent>

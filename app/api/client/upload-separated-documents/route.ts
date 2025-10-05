@@ -131,34 +131,61 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ Fichier sauvegardé:', relativePath)
 
-        // Enregistrer en base de données si Supabase est configuré
+        // Enregistrer en base de données avec Supabase Storage
         let dbRecord = null
+        let supabaseStoragePath = null
+
         if (supabaseAdmin) {
           try {
+            // 1. Essayer d'uploader vers Supabase Storage d'abord
+            const storageFileName = `${clientId}/${documentType}/${fileName}`
+
+            const { data: storageData, error: storageError } = await supabaseAdmin.storage
+              .from('client-documents')
+              .upload(storageFileName, buffer, {
+                contentType: file.type,
+                upsert: false
+              })
+
+            if (!storageError && storageData) {
+              supabaseStoragePath = storageData.path
+              console.log('✅ Fichier uploadé vers Supabase Storage:', supabaseStoragePath)
+            } else {
+              console.warn('⚠️ Erreur Supabase Storage (utilisation locale):', storageError)
+            }
+
+            // 2. Enregistrer les métadonnées en base de données (colonnes exactes de Supabase)
+            const insertData = {
+              clientid: clientId,
+              token: token,
+              documenttype: documentType,
+              filename: file.name,
+              filepath: supabaseStoragePath || relativePath, // Priorité à Supabase Storage
+              filesize: file.size,
+              mimetype: file.type,
+              uploaddate: new Date().toISOString(),
+              status: 'uploaded'
+              // Utilise uniquement les colonnes qui existent dans la table client_documents
+            }
+
             const { data, error } = await supabaseAdmin
               .from('client_documents')
-              .insert([{
-                clientid: clientId,
-                token: token,
-                documenttype: documentType,
-                filename: file.name,
-                filepath: relativePath,
-                filesize: file.size,
-                mimetype: file.type,
-                uploaddate: new Date().toISOString(),
-                status: 'uploaded'
-              }])
+              .insert([insertData])
               .select()
               .single()
 
             if (error) {
-              console.warn('⚠️ Erreur DB (fichier sauvegardé):', error)
+              console.error('❌ Erreur DB insertion:', error)
+              console.error('❌ Données tentées:', insertData)
+              throw error
             } else {
               dbRecord = data
               console.log('✅ Document enregistré en DB:', data.id)
             }
           } catch (dbError) {
-            console.warn('⚠️ Erreur DB (fichier sauvegardé):', dbError)
+            console.error('❌ Erreur critique DB:', dbError)
+            // Ne pas échouer l'upload si la DB échoue, mais logger l'erreur
+            console.warn('⚠️ Fichier sauvegardé localement mais pas en DB')
           }
         }
 
@@ -215,11 +242,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les documents depuis la base de données
+    console.log('🔍 Recherche documents pour:', { clientId, token })
+
     if (supabaseAdmin) {
+      // Utiliser seulement le token pour la recherche (plus fiable)
       const { data, error } = await supabaseAdmin
         .from('client_documents')
         .select('*')
-        .eq('clientid', clientId)
         .eq('token', token)
         .order('uploaddate', { ascending: false })
 
@@ -230,6 +259,8 @@ export async function GET(request: NextRequest) {
           error: 'Erreur lors de la récupération des documents'
         }, { status: 500 })
       }
+
+      console.log(`✅ ${data?.length || 0} document(s) trouvé(s)`)
 
       // Organiser par type de document
       const documentsByType = data.reduce((acc, doc) => {

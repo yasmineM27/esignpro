@@ -14,9 +14,14 @@ interface CaseData {
   status: string;
   insurance_company: string;
   policy_number: string;
+  policy_type?: string;
+  termination_date?: string;
   client_name: string;
   client_email: string;
+  client_phone?: string;
   expires_at: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface DocumentData {
@@ -27,26 +32,30 @@ interface DocumentData {
   uploaddate: string;
 }
 
-// Fonction pour récupérer les données du dossier
+// Fonction pour récupérer les données du dossier avec informations client complètes
 async function getCaseData(token: string): Promise<CaseData | null> {
   try {
-    console.log('Attempting to fetch case data for token:', token);
+    console.log('🔍 Récupération données dossier pour token:', token);
     const { supabaseAdmin } = require('@/lib/supabase');
 
-    // Récupérer le dossier
+    // Récupérer le dossier d'abord
     const { data: caseData, error: caseError } = await supabaseAdmin
       .from('insurance_cases')
-      .select('id, case_number, secure_token, status, insurance_company, policy_number, expires_at, client_id')
+      .select('id, case_number, secure_token, status, insurance_company, policy_number, policy_type, termination_date, expires_at, created_at, updated_at, client_id')
       .eq('secure_token', token)
       .single();
 
     if (caseError || !caseData) {
-      console.error('Erreur récupération dossier:', caseError);
-      console.error('Token not found in database:', token);
+      console.error('❌ Erreur récupération dossier:', caseError);
+      console.error('❌ Token non trouvé:', token);
       return null;
     }
 
-    console.log('Case data found:', { id: caseData.id, case_number: caseData.case_number, status: caseData.status });
+    console.log('✅ Dossier trouvé:', {
+      id: caseData.id,
+      case_number: caseData.case_number,
+      status: caseData.status
+    });
 
     // Récupérer le client
     const { data: clientData, error: clientError } = await supabaseAdmin
@@ -56,21 +65,23 @@ async function getCaseData(token: string): Promise<CaseData | null> {
       .single();
 
     if (clientError || !clientData) {
-      console.error('Erreur récupération client:', clientError);
+      console.error('❌ Erreur récupération client:', clientError);
       return null;
     }
 
     // Récupérer l'utilisateur
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
-      .select('first_name, last_name, email')
+      .select('first_name, last_name, email, phone')
       .eq('id', clientData.user_id)
       .single();
 
     if (userError || !userData) {
-      console.error('Erreur récupération utilisateur:', userError);
+      console.error('❌ Erreur récupération utilisateur:', userError);
       return null;
     }
+
+    console.log('✅ Client trouvé:', `${userData.first_name} ${userData.last_name}`);
 
     return {
       id: caseData.id,
@@ -79,9 +90,14 @@ async function getCaseData(token: string): Promise<CaseData | null> {
       status: caseData.status,
       insurance_company: caseData.insurance_company || '',
       policy_number: caseData.policy_number || '',
+      policy_type: caseData.policy_type || '',
+      termination_date: caseData.termination_date,
       client_name: `${userData.first_name} ${userData.last_name}`,
       client_email: userData.email,
-      expires_at: caseData.expires_at
+      client_phone: userData.phone,
+      expires_at: caseData.expires_at,
+      created_at: caseData.created_at,
+      updated_at: caseData.updated_at
     };
   } catch (error) {
     console.error('Erreur connexion base:', error);
@@ -110,6 +126,29 @@ async function getDocuments(token: string): Promise<DocumentData[]> {
     console.error('Erreur récupération documents:', error);
     return [];
   }
+}
+
+// Fonctions utilitaires pour l'interface dynamique
+function getStatusDisplay(status: string) {
+  const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
+    'draft': { label: '📝 Brouillon', color: '#6b7280', bgColor: '#f3f4f6' },
+    'email_sent': { label: '📧 En attente de documents', color: '#f59e0b', bgColor: '#fef3c7' },
+    'documents_uploaded': { label: '📄 Documents reçus', color: '#3b82f6', bgColor: '#dbeafe' },
+    'signed': { label: '✍️ Signé', color: '#10b981', bgColor: '#d1fae5' },
+    'completed': { label: '✅ Terminé', color: '#059669', bgColor: '#a7f3d0' },
+    'validated': { label: '🎯 Validé', color: '#059669', bgColor: '#a7f3d0' },
+    'archived': { label: '📦 Archivé', color: '#6b7280', bgColor: '#f3f4f6' }
+  };
+  return statusMap[status] || { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
+}
+
+function getProgressPercentage(status: string, documentsCount: number): number {
+  if (status === 'completed' || status === 'validated') return 100;
+  if (status === 'signed') return 90;
+  if (status === 'documents_uploaded' && documentsCount > 0) return 70;
+  if (status === 'email_sent') return 30;
+  if (status === 'draft') return 10;
+  return 10;
 }
 
 // Composant client pour l'interface
@@ -148,7 +187,7 @@ function ClientPortalInterface({ caseData, documents, token }: {
           </p>
         </div>
 
-        {/* Informations du dossier */}
+        {/* Informations du dossier - DYNAMIQUE */}
         <div style={{ padding: '30px' }}>
           <div style={{
             backgroundColor: '#f1f5f9',
@@ -159,6 +198,31 @@ function ClientPortalInterface({ caseData, documents, token }: {
             <h2 style={{ margin: '0 0 15px 0', fontSize: '20px', color: '#334155' }}>
               📋 Informations du dossier
             </h2>
+
+            {/* Barre de progression dynamique */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>Progression du dossier</span>
+                <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                  {getProgressPercentage(caseData.status, documents.length)}%
+                </span>
+              </div>
+              <div style={{
+                backgroundColor: 'rgba(255,255,255,0.8)',
+                borderRadius: '10px',
+                height: '8px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  backgroundColor: '#10b981',
+                  height: '100%',
+                  width: `${getProgressPercentage(caseData.status, documents.length)}%`,
+                  borderRadius: '10px',
+                  transition: 'width 0.5s ease'
+                }} />
+              </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
               <div>
                 <strong>Numéro de dossier:</strong><br />
@@ -166,19 +230,53 @@ function ClientPortalInterface({ caseData, documents, token }: {
               </div>
               <div>
                 <strong>Compagnie d'assurance:</strong><br />
-                {caseData.insurance_company}
+                <span style={{ color: '#374151' }}>{caseData.insurance_company || 'Non spécifiée'}</span>
               </div>
               <div>
                 <strong>Numéro de police:</strong><br />
-                {caseData.policy_number}
+                <span style={{ color: '#374151' }}>{caseData.policy_number || 'Non spécifié'}</span>
+              </div>
+              {caseData.policy_type && (
+                <div>
+                  <strong>Type de police:</strong><br />
+                  <span style={{ color: '#374151' }}>{caseData.policy_type}</span>
+                </div>
+              )}
+              {caseData.termination_date && (
+                <div>
+                  <strong>Date de résiliation:</strong><br />
+                  <span style={{ color: '#dc2626' }}>
+                    {new Date(caseData.termination_date).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+              )}
+              <div>
+                <strong>Date de création:</strong><br />
+                <span style={{ color: '#6b7280' }}>
+                  {new Date(caseData.created_at).toLocaleDateString('fr-FR')}
+                </span>
               </div>
               <div>
                 <strong>Statut:</strong><br />
                 <span style={{
-                  color: caseData.status === 'email_sent' ? '#f59e0b' : '#10b981',
+                  color: getStatusDisplay(caseData.status).color,
+                  backgroundColor: getStatusDisplay(caseData.status).bgColor,
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  display: 'inline-block'
+                }}>
+                  {getStatusDisplay(caseData.status).label}
+                </span>
+              </div>
+              <div>
+                <strong>Documents uploadés:</strong><br />
+                <span style={{
+                  color: documents.length > 0 ? '#10b981' : '#f59e0b',
                   fontWeight: 'bold'
                 }}>
-                  {caseData.status === 'email_sent' ? 'En attente de documents' : caseData.status}
+                  {documents.length} document(s)
                 </span>
               </div>
             </div>
@@ -209,13 +307,22 @@ export default async function ClientPortalPage({ params }: ClientPortalPageProps
   }
 
   // Récupération des données
+  console.log('🔍 Récupération données portail pour token:', token);
+
   const caseData = await getCaseData(token);
   if (!caseData) {
-    console.error('Dossier non trouvé pour le token:', token);
+    console.error('❌ Dossier non trouvé pour le token:', token);
     notFound();
   }
 
+  console.log('✅ Données dossier récupérées:', {
+    case_number: caseData.case_number,
+    client_name: caseData.client_name,
+    status: caseData.status
+  });
+
   const documents = await getDocuments(token);
+  console.log(`✅ ${documents.length} document(s) récupéré(s)`);
 
   return (
     <Suspense fallback={
