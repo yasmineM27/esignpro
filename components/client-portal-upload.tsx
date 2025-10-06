@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 interface DocumentData {
   id: string;
@@ -81,9 +81,83 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
     setSignature('');
   };
 
+  // Gestionnaires tactiles pour mobile
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    setIsDrawing(true);
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+
+    const touch = e.touches[0];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.stroke();
+
+    // Capturer la signature
+    const dataURL = canvas.toDataURL();
+    setSignature(dataURL);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    setIsDrawing(false);
+  };
+
+  // Initialisation du canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Ajuster la taille du canvas
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    ctx.scale(dpr, dpr);
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+
+    // Configuration du style de dessin
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = window.innerWidth < 768 ? 3 : 2; // Plus épais sur mobile
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }, []);
+
   const handleSignDocument = async () => {
-    if (!signature) {
-      alert('Veuillez signer le document avant de continuer');
+    // Vérification plus robuste de la signature
+    if (!signature || signature.trim() === '' || signature === 'data:image/png;base64,') {
+      alert('❌ Signature requise\n\nVeuillez dessiner votre signature dans la zone prévue à cet effet avant de valider.');
+      return;
+    }
+
+    // Vérifier si la signature contient réellement du contenu (pas juste un canvas vide)
+    if (signature.length < 100) { // Une signature valide devrait avoir plus de 100 caractères en base64
+      alert('❌ Signature incomplète\n\nVotre signature semble incomplète. Veuillez dessiner une signature plus détaillée.');
       return;
     }
 
@@ -490,7 +564,7 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
       {showSignature && (
         <div style={{
           marginTop: '30px',
-          padding: '30px',
+          padding: window.innerWidth < 768 ? '20px' : '30px',
           backgroundColor: '#f0fdf4',
           borderRadius: '12px',
           border: '2px solid #10b981'
@@ -498,19 +572,25 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
           <h3 style={{
             margin: '0 0 20px 0',
             color: '#166534',
-            fontSize: '24px',
+            fontSize: window.innerWidth < 768 ? '20px' : '24px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: '10px',
+            textAlign: window.innerWidth < 768 ? 'center' : 'left'
           }}>
             ✍️ Signature Électronique
           </h3>
 
           <p style={{
             margin: '0 0 20px 0',
-            color: '#166534'
+            color: '#166534',
+            fontSize: window.innerWidth < 768 ? '16px' : '14px',
+            textAlign: window.innerWidth < 768 ? 'center' : 'left'
           }}>
-            Veuillez signer dans la zone ci-dessous pour finaliser votre dossier.
+            {window.innerWidth < 768
+              ? 'Dessinez votre signature pour finaliser votre dossier'
+              : 'Veuillez signer dans la zone ci-dessous pour finaliser votre dossier.'
+            }
           </p>
 
           <div style={{
@@ -523,31 +603,57 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
           }}>
             <canvas
               ref={canvasRef}
-              width={600}
-              height={200}
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
               onMouseLeave={stopDrawing}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               style={{
                 border: '1px solid #10b981',
                 borderRadius: '4px',
                 cursor: 'crosshair',
-                maxWidth: '100%',
-                backgroundColor: 'white'
+                width: '100%',
+                height: 'clamp(150px, 25vw, 200px)',
+                backgroundColor: 'white',
+                touchAction: 'none',
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
               }}
             />
             <p style={{
               margin: '10px 0 0 0',
-              fontSize: '14px',
-              color: '#166534'
+              fontSize: window.innerWidth < 768 ? '16px' : '14px',
+              color: '#166534',
+              fontWeight: window.innerWidth < 768 ? 'bold' : 'normal'
             }}>
-              Signez ici avec votre souris ou votre doigt
+              {window.innerWidth < 768
+                ? '📱 Dessinez votre signature avec votre doigt'
+                : 'Signez ici avec votre souris ou votre doigt'
+              }
             </p>
+
+            {/* Instructions supplémentaires pour mobile */}
+            {window.innerWidth < 768 && (
+              <div style={{
+                margin: '15px 0',
+                padding: '10px',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: '6px',
+                fontSize: '14px',
+                color: '#92400e'
+              }}>
+                💡 <strong>Conseil :</strong> Tenez votre téléphone horizontalement pour plus de confort
+              </div>
+            )}
           </div>
 
           <div style={{
             display: 'flex',
+            flexDirection: window.innerWidth < 768 ? 'column' : 'row',
             gap: '15px',
             justifyContent: 'center'
           }}>
@@ -559,11 +665,12 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                fontSize: '14px',
-                cursor: 'pointer'
+                fontSize: window.innerWidth < 768 ? '16px' : '14px',
+                cursor: 'pointer',
+                minHeight: '48px' // Meilleur pour mobile
               }}
             >
-              🗑️ Effacer
+              🗑️ {window.innerWidth < 768 ? 'Recommencer' : 'Effacer'}
             </button>
             <button
               onClick={() => setShowSignature(false)}
@@ -573,8 +680,9 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                fontSize: '14px',
-                cursor: 'pointer'
+                fontSize: window.innerWidth < 768 ? '16px' : '14px',
+                cursor: 'pointer',
+                minHeight: '48px'
               }}
             >
               ❌ Annuler
@@ -588,11 +696,13 @@ export default function ClientPortalUpload({ token, initialDocuments }: ClientPo
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                fontSize: '14px',
-                cursor: signature ? 'pointer' : 'not-allowed'
+                fontSize: window.innerWidth < 768 ? '16px' : '14px',
+                cursor: signature ? 'pointer' : 'not-allowed',
+                minHeight: '48px',
+                fontWeight: 'bold'
               }}
             >
-              ✅ Valider la signature
+              ✅ {window.innerWidth < 768 ? 'Valider' : 'Valider la signature'}
             </button>
           </div>
         </div>

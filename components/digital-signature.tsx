@@ -35,9 +35,9 @@ export function DigitalSignature({ clientName, onSignatureComplete, signatureDat
     canvas.height = rect.height * window.devicePixelRatio
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
-    // Set drawing styles
+    // Set drawing styles - adjust for mobile
     ctx.strokeStyle = "#1f2937"
-    ctx.lineWidth = 2
+    ctx.lineWidth = window.innerWidth < 768 ? 3 : 2 // Plus épais sur mobile
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
 
@@ -107,19 +107,48 @@ export function DigitalSignature({ clientName, onSignatureComplete, signatureDat
 
   const confirmSignature = () => {
     if (!hasSignature) {
+      // Toast pour desktop
       toast({
-        title: "Signature requise",
-        description: "Veuillez signer avant de confirmer.",
+        title: "❌ Signature requise",
+        description: "Veuillez dessiner votre signature dans la zone prévue à cet effet.",
         variant: "destructive",
       })
+
+      // Alert pour mobile (plus visible)
+      if (window.innerWidth < 768) {
+        alert("❌ SIGNATURE REQUISE\n\n📱 Veuillez dessiner votre signature avec votre doigt dans la zone prévue à cet effet avant de valider.");
+      }
       return
     }
 
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // Convert canvas to data URL
+    // Vérifier si le canvas contient réellement du contenu
     const signatureDataUrl = canvas.toDataURL("image/png")
+
+    // Créer un canvas vide pour comparaison
+    const emptyCanvas = document.createElement('canvas')
+    emptyCanvas.width = canvas.width
+    emptyCanvas.height = canvas.height
+    const emptyDataUrl = emptyCanvas.toDataURL("image/png")
+
+    if (signatureDataUrl.length < 100 || signatureDataUrl === emptyDataUrl) {
+      // Toast pour desktop
+      toast({
+        title: "❌ Signature incomplète",
+        description: "Votre signature semble incomplète. Veuillez dessiner une signature plus détaillée.",
+        variant: "destructive",
+      })
+
+      // Alert pour mobile (plus visible)
+      if (window.innerWidth < 768) {
+        alert("❌ SIGNATURE INCOMPLÈTE\n\n📱 Votre signature semble trop simple ou incomplète.\n\nVeuillez dessiner une signature plus détaillée avec votre doigt.");
+      }
+      return
+    }
+
+    // Convert canvas to data URL
     const timestamp = new Date().toISOString()
 
     setIsConfirmed(true)
@@ -134,58 +163,95 @@ export function DigitalSignature({ clientName, onSignatureComplete, signatureDat
     })
   }
 
-  // Touch events for mobile
+  // Touch events for mobile - Gestion directe pour meilleure compatibilité
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (isConfirmed) return
+
     e.preventDefault()
+    const canvas = canvasRef.current
+    if (!canvas) return
+
     const touch = e.touches[0]
-    const mouseEvent = new MouseEvent("mousedown", {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-    })
-    canvasRef.current?.dispatchEvent(mouseEvent)
+    const rect = canvas.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    setIsDrawing(true)
   }
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (isConfirmed || !isDrawing) return
+
     e.preventDefault()
+    const canvas = canvasRef.current
+    if (!canvas) return
+
     const touch = e.touches[0]
-    const mouseEvent = new MouseEvent("mousemove", {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-    })
-    canvasRef.current?.dispatchEvent(mouseEvent)
+    const rect = canvas.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    ctx.lineTo(x, y)
+    ctx.stroke()
+    setHasSignature(true)
   }
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (isConfirmed) return
+
     e.preventDefault()
-    const mouseEvent = new MouseEvent("mouseup", {})
-    canvasRef.current?.dispatchEvent(mouseEvent)
+    setIsDrawing(false)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Alert responsive */}
       <Alert className="border-blue-200 bg-blue-50">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
+        <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0" />
+        <AlertDescription className="text-blue-800 text-sm sm:text-base">
           <strong>Déclaration :</strong> En signant ci-dessous, je confirme que toutes les informations fournies sont
           exactes et que je souhaite procéder à la résiliation de mes contrats d'assurance selon les termes indiqués
           dans le document.
         </AlertDescription>
       </Alert>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PenTool className="h-5 w-5" />
-            Signature de {clientName}
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <PenTool className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span className="truncate">Signature de {clientName}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Instructions mobile */}
+          <div className="block sm:hidden bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-sm text-yellow-800">
+              📱 <strong>Sur mobile :</strong> Utilisez votre doigt pour dessiner votre signature dans la zone ci-dessous
+            </p>
+          </div>
+
           <div className="relative">
             <canvas
               ref={canvasRef}
-              className={`w-full h-48 border-2 rounded-lg cursor-crosshair ${
+              className={`w-full border-2 rounded-lg touch-none ${
                 isConfirmed ? "border-green-300 bg-green-50" : "border-gray-300 bg-white hover:border-gray-400"
               }`}
+              style={{
+                height: 'clamp(150px, 25vw, 200px)', // Hauteur responsive
+                touchAction: 'none',
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+                cursor: isConfirmed ? 'default' : 'crosshair'
+              }}
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
@@ -196,38 +262,46 @@ export function DigitalSignature({ clientName, onSignatureComplete, signatureDat
             />
             {!hasSignature && !isConfirmed && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <p className="text-gray-400 text-sm">Signez ici avec votre souris ou votre doigt</p>
+                <p className="text-gray-400 text-xs sm:text-sm text-center px-4">
+                  <span className="hidden sm:inline">Signez ici avec votre souris ou votre doigt</span>
+                  <span className="sm:hidden">Dessinez votre signature avec votre doigt</span>
+                </p>
               </div>
             )}
             {isConfirmed && (
               <div className="absolute top-2 right-2">
                 <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                   <Check className="h-3 w-3" />
-                  Confirmée
+                  <span className="hidden sm:inline">Confirmée</span>
+                  <span className="sm:hidden">✓</span>
                 </div>
               </div>
             )}
           </div>
 
           {!isConfirmed && (
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
               <Button
                 variant="outline"
                 onClick={clearSignature}
                 disabled={!hasSignature}
-                className="flex items-center gap-2 bg-transparent"
+                className="flex items-center justify-center gap-2 bg-transparent order-2 sm:order-1"
+                size="sm"
               >
                 <RotateCcw className="h-4 w-4" />
-                Effacer
+                <span className="hidden sm:inline">Effacer</span>
+                <span className="sm:hidden">Recommencer</span>
               </Button>
 
               <Button
                 onClick={confirmSignature}
                 disabled={!hasSignature}
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2 order-1 sm:order-2"
+                size="sm"
               >
                 <Check className="h-4 w-4" />
-                Confirmer la Signature
+                <span className="hidden sm:inline">Confirmer la Signature</span>
+                <span className="sm:hidden">Valider</span>
               </Button>
             </div>
           )}

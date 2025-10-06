@@ -8,13 +8,13 @@ import { existsSync } from 'fs'
 const DOCUMENT_TYPES = {
   identity_front: {
     name: 'Carte d\'Identité - RECTO',
-    allowedTypes: ['image/jpeg', 'image/png', 'image/jpg'],
+    allowedTypes: ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'],
     maxSize: 10 * 1024 * 1024, // 10MB
     required: true
   },
   identity_back: {
     name: 'Carte d\'Identité - VERSO',
-    allowedTypes: ['image/jpeg', 'image/png', 'image/jpg'],
+    allowedTypes: ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'],
     maxSize: 10 * 1024 * 1024,
     required: true
   },

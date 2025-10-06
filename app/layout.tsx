@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "eSignPro - Signature Électronique Sécurisée",
   description: "Plateforme de signature électronique pour la gestion des résiliations d'assurance",
   generator: "eSignPro",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
 }
 
 export default function RootLayout({

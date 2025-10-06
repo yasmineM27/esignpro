@@ -38,18 +38,18 @@ const DOCUMENT_CONFIGS = {
   identity_front: {
     title: "Carte d'Identité - RECTO",
     description: "Face avant de votre carte d'identité",
-    instructions: "Assurez-vous que tous les détails sont lisibles",
+    instructions: "Assurez-vous que tous les détails sont lisibles. Formats acceptés: Images (JPG, PNG) ou PDF",
     maxFiles: 1,
-    acceptedTypes: ["image/jpeg", "image/png", "image/jpg"],
+    acceptedTypes: ["image/jpeg", "image/png", "image/jpg", "application/pdf"],
     icon: "🆔",
     required: true
   },
   identity_back: {
     title: "Carte d'Identité - VERSO",
     description: "Face arrière de votre carte d'identité",
-    instructions: "Vérifiez que l'adresse est visible",
+    instructions: "Vérifiez que l'adresse est visible. Formats acceptés: Images (JPG, PNG) ou PDF",
     maxFiles: 1,
-    acceptedTypes: ["image/jpeg", "image/png", "image/jpg"],
+    acceptedTypes: ["image/jpeg", "image/png", "image/jpg", "application/pdf"],
     icon: "🆔",
     required: true
   },

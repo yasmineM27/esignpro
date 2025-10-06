@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Validate file type
     const allowedTypes = {
-      identity: [".pdf", ".jpg", ".jpeg", ".png"],
+      identity: [".pdf", ".jpg", ".jpeg", ".png"], // ✅ PDF déjà supporté
       insurance: [".pdf"],
     }
 

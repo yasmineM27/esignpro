@@ -158,115 +158,83 @@ function ClientPortalInterface({ caseData, documents, token }: {
   token: string;
 }) {
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f8fafc',
-      padding: '20px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        overflow: 'hidden'
-      }}>
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          padding: '30px',
-          textAlign: 'center'
-        }}>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: 'bold' }}>
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 font-sans">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        {/* Header - Responsive */}
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white p-6 sm:p-8 text-center">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">
             Bonjour {caseData.client_name}
           </h1>
-          <p style={{ margin: '0', fontSize: '16px', opacity: 0.9 }}>
+          <p className="text-sm sm:text-base opacity-90 mb-0">
             Finalisation de votre dossier
           </p>
         </div>
 
-        {/* Informations du dossier - DYNAMIQUE */}
-        <div style={{ padding: '30px' }}>
-          <div style={{
-            backgroundColor: '#f1f5f9',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '30px'
-          }}>
-            <h2 style={{ margin: '0 0 15px 0', fontSize: '20px', color: '#334155' }}>
+        {/* Informations du dossier - DYNAMIQUE - Responsive */}
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="bg-slate-100 p-4 sm:p-6 rounded-lg mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-700 mb-4">
               📋 Informations du dossier
             </h2>
 
-            {/* Barre de progression dynamique */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>Progression du dossier</span>
-                <span style={{ fontSize: '14px', color: '#6b7280' }}>
+            {/* Barre de progression dynamique - Responsive */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-semibold text-gray-700">Progression du dossier</span>
+                <span className="text-sm text-gray-500">
                   {getProgressPercentage(caseData.status, documents.length)}%
                 </span>
               </div>
-              <div style={{
-                backgroundColor: 'rgba(255,255,255,0.8)',
-                borderRadius: '10px',
-                height: '8px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  backgroundColor: '#10b981',
-                  height: '100%',
-                  width: `${getProgressPercentage(caseData.status, documents.length)}%`,
-                  borderRadius: '10px',
-                  transition: 'width 0.5s ease'
-                }} />
+              <div className="bg-white/80 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-emerald-500 h-full rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${getProgressPercentage(caseData.status, documents.length)}%` }}
+                />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
-              <div>
-                <strong>Numéro de dossier:</strong><br />
-                <span style={{ color: '#3b82f6' }}>{caseData.case_number}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-white p-3 rounded-lg">
+                <div className="font-semibold text-gray-700 text-sm mb-1">Numéro de dossier:</div>
+                <div className="text-blue-600 font-medium">{caseData.case_number}</div>
               </div>
-              <div>
-                <strong>Compagnie d'assurance:</strong><br />
-                <span style={{ color: '#374151' }}>{caseData.insurance_company || 'Non spécifiée'}</span>
+              <div className="bg-white p-3 rounded-lg">
+                <div className="font-semibold text-gray-700 text-sm mb-1">Compagnie d'assurance:</div>
+                <div className="text-gray-800">{caseData.insurance_company || 'Non spécifiée'}</div>
               </div>
-              <div>
-                <strong>Numéro de police:</strong><br />
-                <span style={{ color: '#374151' }}>{caseData.policy_number || 'Non spécifié'}</span>
+              <div className="bg-white p-3 rounded-lg">
+                <div className="font-semibold text-gray-700 text-sm mb-1">Numéro de police:</div>
+                <div className="text-gray-800">{caseData.policy_number || 'Non spécifié'}</div>
               </div>
               {caseData.policy_type && (
-                <div>
-                  <strong>Type de police:</strong><br />
-                  <span style={{ color: '#374151' }}>{caseData.policy_type}</span>
+                <div className="bg-white p-3 rounded-lg">
+                  <div className="font-semibold text-gray-700 text-sm mb-1">Type de police:</div>
+                  <div className="text-gray-800">{caseData.policy_type}</div>
                 </div>
               )}
               {caseData.termination_date && (
-                <div>
-                  <strong>Date de résiliation:</strong><br />
-                  <span style={{ color: '#dc2626' }}>
+                <div className="bg-white p-3 rounded-lg">
+                  <div className="font-semibold text-gray-700 text-sm mb-1">Date de résiliation:</div>
+                  <div className="text-red-600 font-medium">
                     {new Date(caseData.termination_date).toLocaleDateString('fr-FR')}
-                  </span>
+                  </div>
                 </div>
               )}
-              <div>
-                <strong>Date de création:</strong><br />
-                <span style={{ color: '#6b7280' }}>
+              <div className="bg-white p-3 rounded-lg">
+                <div className="font-semibold text-gray-700 text-sm mb-1">Date de création:</div>
+                <div className="text-gray-500">
                   {new Date(caseData.created_at).toLocaleDateString('fr-FR')}
-                </span>
+                </div>
               </div>
-              <div>
-                <strong>Statut:</strong><br />
-                <span style={{
-                  color: getStatusDisplay(caseData.status).color,
-                  backgroundColor: getStatusDisplay(caseData.status).bgColor,
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  display: 'inline-block'
-                }}>
+              <div className="bg-white p-3 rounded-lg">
+                <div className="font-semibold text-gray-700 text-sm mb-1">Statut:</div>
+                <span
+                  className="inline-block px-2 py-1 rounded text-sm font-semibold"
+                  style={{
+                    color: getStatusDisplay(caseData.status).color,
+                    backgroundColor: getStatusDisplay(caseData.status).bgColor
+                  }}
+                >
                   {getStatusDisplay(caseData.status).label}
                 </span>
               </div>
